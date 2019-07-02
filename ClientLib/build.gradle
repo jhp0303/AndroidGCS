@@ -113,7 +113,7 @@ dependencies {
 
     implementation 'org.droidplanner.android:usb-serial-android:0.1.0'
 
-    debugImplementation project(':Mavlink')
+//    debugImplementation project(':Mavlink')
 //    sitlCompile project(':Mavlink')
 
     implementation files('libs/Mavlink.jar')

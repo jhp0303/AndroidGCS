@@ -1,5 +1,5 @@
 //Library projects
-include ':Mavlink'
+include ':Mavlink', ':myapplication', ':navermap'
 
 //Android library projects
 include ':ClientLib'
