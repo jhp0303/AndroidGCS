@@ -300,21 +300,6 @@ public class MainActivity extends AppCompatActivity implements DroneListener, To
     // UI Events
     // ==========================================================
 
-    public void onBtnConnectTap(View view) {
-        if (this.drone.isConnected()) {
-            this.drone.disconnect();
-        } else {
-            Spinner connectionSelector = (Spinner) findViewById(R.id.selectConnectionType);
-            int selectedConnectionType = connectionSelector.getSelectedItemPosition();
-
-            ConnectionParameter connectionParams = selectedConnectionType == ConnectionType.TYPE_USB
-                ? ConnectionParameter.newUsbConnection(null)
-                : ConnectionParameter.newUdpConnection(null);
-
-            this.drone.connect(connectionParams);
-        }
-
-    }
 
     public void onFlightModeSelected(View view) {
         VehicleMode vehicleMode = (VehicleMode) this.modeSelector.getSelectedItem();

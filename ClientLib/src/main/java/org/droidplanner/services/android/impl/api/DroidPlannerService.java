@@ -2,14 +2,19 @@ package org.droidplanner.services.android.impl.api;
 
 import android.annotation.SuppressLint;
 import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.Service;
+import android.app.job.JobInfo;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.provider.Settings;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
@@ -217,22 +222,45 @@ public class DroidPlannerService extends Service {
 
     @SuppressLint("NewApi")
     private void updateForegroundNotification() {
-        final Context context = getApplicationContext();
+        // return; 으로 값을 준다면 노티피케이션을 안쓰게됨.
 
-        //Put the service in the foreground
-        final NotificationCompat.Builder notifBuilder = new NotificationCompat.Builder(context)
-                .setContentTitle("DroneKit-Android")
-                .setPriority(NotificationCompat.PRIORITY_MIN)
-                .setSmallIcon(R.drawable.ic_stat_notify);
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is new and not in the support library
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // create notification channel
+            CharSequence name = getString(R.string.channel_name);
+            String description = getString(R.string.channel_description);
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
 
-        final int connectedCount = droneApiStore.size();
-        if (connectedCount > 1) {
-            notifBuilder.setContentText(connectedCount + " connected apps");
+            NotificationChannel channel = new NotificationChannel(getString(R.string.channel_ID), name, importance);
+            channel.setDescription(description);
+
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
         }
+        else {
+            final Context context = getApplicationContext();
 
-        final Notification notification = notifBuilder.build();
-        startForeground(FOREGROUND_ID, notification);
+
+            //Put the service in the foreground
+            final NotificationCompat.Builder notifBuilder = new NotificationCompat.Builder(context)
+                    .setContentTitle("DroneKit-Android")
+                    .setPriority(NotificationCompat.PRIORITY_MIN)
+                    .setSmallIcon(R.drawable.ic_stat_notify);
+
+
+            final int connectedCount = droneApiStore.size();
+            if (connectedCount > 1) {
+                notifBuilder.setContentText(connectedCount + " connected apps");
+            }
+
+            final Notification notification = notifBuilder.build();
+            startForeground(FOREGROUND_ID, notification);
+        }
     }
+
 
     @Override
     public void onDestroy() {
