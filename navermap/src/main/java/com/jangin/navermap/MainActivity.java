@@ -1,107 +1,87 @@
 package com.jangin.navermap;
 
 import android.content.Context;
-import android.graphics.Color;
+import android.content.pm.ActivityInfo;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.UiThread;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.Spinner;
 import android.widget.Toast;
 
-import com.naver.maps.geometry.LatLng;
-import com.naver.maps.map.CameraPosition;
-import com.naver.maps.map.CameraUpdate;
+import com.example.mygcs.R;
+import com.naver.maps.map.LocationTrackingMode;
 import com.naver.maps.map.MapFragment;
 import com.naver.maps.map.NaverMap;
 import com.naver.maps.map.OnMapReadyCallback;
+import com.naver.maps.map.util.FusedLocationSource;
 import com.o3dr.android.client.ControlTower;
 import com.o3dr.android.client.Drone;
 import com.o3dr.android.client.interfaces.DroneListener;
 import com.o3dr.android.client.interfaces.LinkListener;
 import com.o3dr.android.client.interfaces.TowerListener;
-import com.o3dr.services.android.lib.coordinate.LatLong;
 import com.o3dr.services.android.lib.drone.attribute.AttributeEvent;
-import com.o3dr.services.android.lib.drone.attribute.AttributeType;
 import com.o3dr.services.android.lib.drone.connection.ConnectionParameter;
-import com.o3dr.services.android.lib.drone.connection.ConnectionType;
-import com.o3dr.services.android.lib.drone.property.Altitude;
-import com.o3dr.services.android.lib.drone.property.Gps;
-import com.o3dr.services.android.lib.drone.property.Type;
-import com.o3dr.services.android.lib.drone.property.VehicleMode;
 import com.o3dr.services.android.lib.gcs.link.LinkConnectionStatus;
 
-import java.util.Arrays;
-import java.util.List;
+public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, DroneListener, TowerListener, LinkListener {
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1000;
+    private FusedLocationSource locationSource;
+    private static final String TAG = MainActivity.class.getSimpleName();
 
-public class MainActivity extends FragmentActivity
-        implements OnMapReadyCallback, DroneListener, TowerListener, LinkListener {
+    MapFragment mNaverMapFragment = null;
     private Drone drone;
-    private int droneType = Type.TYPE_UNKNOWN;
     private ControlTower controlTower;
-
-    private static final int DEFAULT_UDP_PORT = 14550;
-    private static final int DEFAULT_USB_BAUD_RATE = 57600;
-
+    private final Handler handler = new Handler();
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState) {
+        Log.i(TAG, "Start mainActivity");
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_main);
+        this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LOCKED);
 
         final Context context = getApplicationContext();
         this.controlTower = new ControlTower(context);
         this.drone = new Drone(context);
 
         FragmentManager fm = getSupportFragmentManager();
-        MapFragment mapFragment = (MapFragment) fm.findFragmentById(R.id.map);
-        if (mapFragment == null) {
-            mapFragment = MapFragment.newInstance();
-            fm.beginTransaction().add(R.id.map, mapFragment).commit();
+        mNaverMapFragment = (MapFragment) fm.findFragmentById(R.id.map);
+        if (mNaverMapFragment == null) {
+            mNaverMapFragment = MapFragment.newInstance();
+            fm.beginTransaction().add(R.id.map, mNaverMapFragment).commit();
         }
 
-        mapFragment.getMapAsync(this);
+        mNaverMapFragment.getMapAsync(this);
 
-        LatLng coord = new LatLng(35.945282, 126.68215299999997);
+        locationSource = new FusedLocationSource(this, LOCATION_PERMISSION_REQUEST_CODE);
 
-        Toast.makeText(this,
-                "위도: " + coord.latitude + ", 경도: " + coord.longitude,
-                Toast.LENGTH_SHORT).show();
     }
 
     @UiThread
     @Override
     public void onMapReady(@NonNull NaverMap naverMap) {
-        naverMap.setMapType(NaverMap.MapType.Terrain);
+        naverMap.setMapType(NaverMap.MapType.Hybrid);
+        naverMap.setLocationSource(locationSource);
+        naverMap.setLocationTrackingMode(LocationTrackingMode.Follow);
 
-        Altitude droneAltitude = this.drone.getAttribute(AttributeType.ALTITUDE);
-        double vehicleAltitude = droneAltitude.getAltitude();
-        Gps droneGps = this.drone.getAttribute(AttributeType.GPS);
-        LatLong vehiclePosition = droneGps.getPosition();
-
-        CameraPosition currentCameraPosition = new CameraPosition(new LatLng(vehiclePosition.getLatitude(), vehiclePosition.getLongitude()), 16);
-        CameraPosition cameraPosition = new CameraPosition(new LatLng(35.945282, 126.68215299999997), 16);
-
-        CameraUpdate cameraUpdate = CameraUpdate.toCameraPosition(currentCameraPosition);
-        naverMap.moveCamera(cameraUpdate);
     }
 
-
-    protected void updateConnectedButton(Boolean isConnected) {
-        Button connectButton = (Button) findViewById(R.id.btnConnect);
-        if (isConnected) {
-            connectButton.setText("Disconnect");
-        } else {
-            connectButton.setText("Connect");
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,  @NonNull int[] grantResults) {
+        if (locationSource.onRequestPermissionsResult(
+                requestCode, permissions, grantResults)) {
+            return;
         }
+        super.onRequestPermissionsResult(
+                requestCode, permissions, grantResults);
     }
+
 
     @Override
     public void onStart() {
@@ -125,16 +105,38 @@ public class MainActivity extends FragmentActivity
     public void onDroneEvent(String event, Bundle extras) {
         switch (event) {
             case AttributeEvent.STATE_CONNECTED:
+                alertUser("Drone Connected");
                 updateConnectedButton(this.drone.isConnected());
+                //updateArmButton();
                 break;
 
             case AttributeEvent.STATE_DISCONNECTED:
+                alertUser("Drone Disconnected");
                 updateConnectedButton(this.drone.isConnected());
+                //updateArmButton();
                 break;
 
             default:
                 // Log.i("DRONE_EVENT", event); //Uncomment to see events from the drone
                 break;
+        }
+    }
+
+    protected void updateConnectedButton(Boolean isConnected) {
+        Button connectButton = (Button) findViewById(R.id.btnConnect);
+        if (isConnected) {
+            connectButton.setText(getText(R.string.button_disconnect));
+        } else {
+            connectButton.setText(getText(R.string.button_connect));
+        }
+    }
+
+    public void onBtnConnectTap(View view) {
+        if (this.drone.isConnected()) {
+            this.drone.disconnect();
+        } else {
+            ConnectionParameter params = ConnectionParameter.newUdpConnection(null);
+            this.drone.connect(params);
         }
     }
 
@@ -145,16 +147,32 @@ public class MainActivity extends FragmentActivity
 
     @Override
     public void onLinkStateUpdated(@NonNull LinkConnectionStatus connectionStatus) {
-
+        switch (connectionStatus.getStatusCode()) {
+            case LinkConnectionStatus.FAILED:
+                Bundle extras = connectionStatus.getExtras();
+                String msg = null;
+                if (extras != null) {
+                    msg = extras.getString(LinkConnectionStatus.EXTRA_ERROR_MSG);
+                }
+                alertUser("Connection Failed:" + msg);
+                break;
+        }
     }
 
     @Override
     public void onTowerConnected() {
-
+        alertUser("DroneKit-Android Connected");
+        this.controlTower.registerDrone(this.drone, this.handler);
+        this.drone.registerDroneListener(this);
     }
 
     @Override
     public void onTowerDisconnected() {
+        alertUser("DroneKit-Android Interrupted");
+    }
 
+    protected void alertUser(String message) {
+        Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+        Log.d(TAG, message);
     }
 }

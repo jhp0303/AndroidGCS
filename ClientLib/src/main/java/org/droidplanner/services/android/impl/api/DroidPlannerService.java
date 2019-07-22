@@ -222,19 +222,18 @@ public class DroidPlannerService extends Service {
 
     @SuppressLint("NewApi")
     private void updateForegroundNotification() {
-        // return; 으로 값을 준다면 노티피케이션을 안쓰게됨.
+        createNotificationChannel();
+    }
 
+    private void createNotificationChannel() {
         // Create the NotificationChannel, but only on API 26+ because
         // the NotificationChannel class is new and not in the support library
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // create notification channel
             CharSequence name = getString(R.string.channel_name);
             String description = getString(R.string.channel_description);
             int importance = NotificationManager.IMPORTANCE_DEFAULT;
-
-            NotificationChannel channel = new NotificationChannel(getString(R.string.channel_ID), name, importance);
+            NotificationChannel channel = new NotificationChannel(getString(R.string.CHANNEL_ID), name, importance);
             channel.setDescription(description);
-
             // Register the channel with the system; you can't change the importance
             // or other notification behaviors after this
             NotificationManager notificationManager = getSystemService(NotificationManager.class);
@@ -243,13 +242,11 @@ public class DroidPlannerService extends Service {
         else {
             final Context context = getApplicationContext();
 
-
             //Put the service in the foreground
             final NotificationCompat.Builder notifBuilder = new NotificationCompat.Builder(context)
                     .setContentTitle("DroneKit-Android")
                     .setPriority(NotificationCompat.PRIORITY_MIN)
                     .setSmallIcon(R.drawable.ic_stat_notify);
-
 
             final int connectedCount = droneApiStore.size();
             if (connectedCount > 1) {
