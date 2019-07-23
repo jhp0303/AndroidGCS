@@ -2,4 +2,7 @@
     <string name="app_name">NaverMap</string>
     <string name="button_connect">Connect</string>
     <string name="button_disconnect">Disconnect</string>
+    <string name="button_arm">ARM</string>
+    <string name="button_flightMode">비행모드</string>
+    <string name="button_land">LAND</string>
 </resources>

@@ -7,15 +7,14 @@
     tools:context="com.jangin.navermap.MainActivity">
 
     <FrameLayout
+        android:id="@+id/frameLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
         <FrameLayout
             android:id="@+id/map"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-        </FrameLayout>
+            android:layout_height="match_parent" />
 
         <Button
             android:id="@+id/btnConnect"
@@ -23,6 +22,73 @@
             android:layout_height="wrap_content"
             android:onClick="onBtnConnectTap"
             android:text="@string/button_connect" />
+
+        <Button
+            android:id="@+id/btnARM"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:onClick="onArmButtonTap"
+            android:text="@string/button_arm"
+            app:layout_constraintRight_toRightOf="parent"
+            android:gravity="center_vertical"/>
+
     </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:gravity="center_horizontal"
+        android:weightSum="100">
+
+
+        <Button
+            android:id="@+id/voltage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Voltage"
+            android:layout_weight="1" />
+
+        <Spinner
+            android:id="@+id/modeSelect"
+            android:entries="@array/flightMode"
+            android:layout_width="75dp"
+            android:layout_height="36dp"
+            android:background="#D5D5D5"
+            android:spinnerMode="dropdown"
+            android:text="@string/button_flightMode"
+            android:layout_weight="1"/>
+
+
+        <Button
+            android:id="@+id/altitude"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="고도"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/speed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="속도"
+            android:layout_weight="1"/>
+
+        <Button
+            android:id="@+id/yaw"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="YAW"
+            android:layout_weight="1"/>
+
+        <Button
+            android:id="@+id/Satellite"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="위성"
+            android:layout_weight="1" />
+
+    </LinearLayout>
 
 </android.support.constraint.ConstraintLayout>

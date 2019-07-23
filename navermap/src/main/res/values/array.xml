@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="flightMode">
+        <item>ALTHOLD</item>
+        <item>LOITER</item>
+        <item>AUTO</item>
+    </string-array>
+</resources>
