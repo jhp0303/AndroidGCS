@@ -5,4 +5,10 @@
     <string name="button_arm">ARM</string>
     <string name="button_flightMode">비행모드</string>
     <string name="button_land">LAND</string>
+    <string name="button_voltage">Voltage</string>
+    <string name="button_altitude">고도</string>
+    <string name="button_speed">속도</string>
+    <string name="button_yaw">YAW</string>
+    <string name="button_satellite">위성</string>
+
 </resources>

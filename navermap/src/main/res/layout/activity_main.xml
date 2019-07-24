@@ -47,7 +47,7 @@
             android:id="@+id/voltage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Voltage"
+            android:text="@string/button_voltage"
             android:layout_weight="1" />
 
         <Spinner
@@ -65,28 +65,28 @@
             android:id="@+id/altitude"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="고도"
+            android:text="@string/button_altitude"
             android:layout_weight="1" />
 
         <Button
             android:id="@+id/speed"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="속도"
+            android:text="@string/button_speed"
             android:layout_weight="1"/>
 
         <Button
             android:id="@+id/yaw"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="YAW"
+            android:text="@string/button_yaw"
             android:layout_weight="1"/>
 
         <Button
             android:id="@+id/Satellite"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="위성"
+            android:text="@string/button_satellite"
             android:layout_weight="1" />
 
     </LinearLayout>

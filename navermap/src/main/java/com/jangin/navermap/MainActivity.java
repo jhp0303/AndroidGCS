@@ -2,7 +2,6 @@ package com.jangin.navermap;
 
 import android.content.Context;
 import android.content.pm.ActivityInfo;
-import android.graphics.drawable.BitmapDrawable;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.UiThread;
@@ -15,18 +14,15 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.mygcs.R;
 import com.naver.maps.geometry.LatLng;
-import com.naver.maps.map.CameraPosition;
 import com.naver.maps.map.CameraUpdate;
 import com.naver.maps.map.LocationTrackingMode;
 import com.naver.maps.map.MapFragment;
 import com.naver.maps.map.NaverMap;
 import com.naver.maps.map.OnMapReadyCallback;
-import com.naver.maps.map.overlay.LocationOverlay;
 import com.naver.maps.map.overlay.Marker;
 import com.naver.maps.map.overlay.OverlayImage;
 import com.naver.maps.map.util.FusedLocationSource;
@@ -38,13 +34,14 @@ import com.o3dr.android.client.interfaces.DroneListener;
 import com.o3dr.android.client.interfaces.LinkListener;
 import com.o3dr.android.client.interfaces.TowerListener;
 import com.o3dr.services.android.lib.coordinate.LatLong;
-import com.o3dr.services.android.lib.coordinate.LatLongAlt;
 import com.o3dr.services.android.lib.drone.attribute.AttributeEvent;
 import com.o3dr.services.android.lib.drone.attribute.AttributeType;
 import com.o3dr.services.android.lib.drone.connection.ConnectionParameter;
 import com.o3dr.services.android.lib.drone.property.Altitude;
+import com.o3dr.services.android.lib.drone.property.Attitude;
+import com.o3dr.services.android.lib.drone.property.Battery;
 import com.o3dr.services.android.lib.drone.property.Gps;
-import com.o3dr.services.android.lib.drone.property.Home;
+import com.o3dr.services.android.lib.drone.property.Speed;
 import com.o3dr.services.android.lib.drone.property.State;
 import com.o3dr.services.android.lib.drone.property.Type;
 import com.o3dr.services.android.lib.drone.property.VehicleMode;
@@ -75,7 +72,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         setContentView(R.layout.activity_main);
         this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LOCKED);
 
-        Log.d("myLog","테스트 결과입니다.");
+        Log.d("myLog", "테스트 결과입니다.");
 
         final Context context = getApplicationContext();
         this.controlTower = new ControlTower(context);
@@ -165,6 +162,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 updateArmButton();
                 break;
 
+            case AttributeEvent.SPEED_UPDATED:
+                updateSpeed();
+                break;
+
             case AttributeEvent.TYPE_UPDATED:
                 Type newDroneType = this.drone.getAttribute(AttributeType.TYPE);
                 if (newDroneType.getDroneType() != this.droneType) {
@@ -178,11 +179,49 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 break;
 
 
+            case AttributeEvent.GPS_COUNT:
+                processGpsState();
+
+            case AttributeEvent.BATTERY_UPDATED:
+                updateVoltage();
+                break;
+
+            case AttributeEvent.ATTITUDE_UPDATED:
+                updateYaw();
+                break;
 
             default:
                 // Log.i("DRONE_EVENT", event); //Uncomment to see events from the drone
                 break;
         }
+    }
+
+    private void updateYaw() {
+        Attitude yawCondition = this.drone.getAttribute(AttributeType.ATTITUDE);
+        yawCondition.getYaw();
+        Button voltageButton = (Button) findViewById(R.id.yaw);
+        voltageButton.setText(String.format("Yaw " + "%3.0f", yawCondition.getYaw()) + "deg");
+    }
+
+    private void updateVoltage() {
+        Battery vehicleBattery = this.drone.getAttribute(AttributeType.BATTERY);
+        vehicleBattery.getBatteryVoltage();
+        Button voltageButton = (Button) findViewById(R.id.voltage);
+        voltageButton.setText(String.format("전압 " + "%3.1f", vehicleBattery.getBatteryVoltage()));
+    }
+
+    private void processGpsState() {
+
+        Gps vehicleGps = this.drone.getAttribute(AttributeType.GPS);
+        vehicleGps.getSatellitesCount();
+        Button satelliteButton = (Button) findViewById(R.id.Satellite);
+        satelliteButton.setText(String.format("위성 " + vehicleGps.getSatellitesCount()));
+    }
+
+    protected void updateSpeed() {
+        Button speedButton = (Button) findViewById(R.id.speed);
+        Speed droneSpeed = this.drone.getAttribute(AttributeType.SPEED);
+        speedButton.setText(String.format("속도 : " + "%3.1f", droneSpeed.getGroundSpeed()) + "m/s");
     }
 
     public void onFlightModeSelected(View view) {
@@ -309,8 +348,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         marker.setPosition(LatLng);
         marker.setIcon(OverlayImage.fromResource(R.drawable.slide_up_16));
         marker.setMap(nMap);
-
-
     }
 
     protected void updateAltitude() {
