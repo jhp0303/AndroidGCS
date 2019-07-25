@@ -2,6 +2,7 @@ package com.jangin.navermap;
 
 import android.content.Context;
 import android.content.pm.ActivityInfo;
+import android.graphics.PointF;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.UiThread;
@@ -18,11 +19,15 @@ import android.widget.Toast;
 
 import com.example.mygcs.R;
 import com.naver.maps.geometry.LatLng;
+import com.naver.maps.geometry.LatLngBounds;
+import com.naver.maps.map.CameraPosition;
 import com.naver.maps.map.CameraUpdate;
+import com.naver.maps.map.LocationSource;
 import com.naver.maps.map.LocationTrackingMode;
 import com.naver.maps.map.MapFragment;
 import com.naver.maps.map.NaverMap;
 import com.naver.maps.map.OnMapReadyCallback;
+import com.naver.maps.map.overlay.LocationOverlay;
 import com.naver.maps.map.overlay.Marker;
 import com.naver.maps.map.overlay.OverlayImage;
 import com.naver.maps.map.util.FusedLocationSource;
@@ -100,16 +105,47 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
+        locationSource = new FusedLocationSource(this, LOCATION_PERMISSION_REQUEST_CODE);
 
     }
+
+    public void mapLockStat(View v) {
+        Button mapStatusButton = (Button) findViewById(R.id.mapLockStatus);
+        Button buttonLock = (Button) findViewById(R.id.mapLock);
+        Button buttonMove = (Button) findViewById(R.id.mapMove);
+        if (mapStatusButton.callOnClick()) {
+            buttonLock.setVisibility(View.VISIBLE);
+            buttonMove.setVisibility(View.VISIBLE);
+            if (buttonLock.callOnClick()) {
+                mapStatusButton.setText("맵 잠금");
+                Altitude droneAltitude = this.drone.getAttribute(AttributeType.ALTITUDE);
+                Gps droneGps = this.drone.getAttribute(AttributeType.GPS);
+                LatLong vehiclePosition = droneGps.getPosition();
+                nMap.setExtent(new LatLngBounds(new LatLng(vehiclePosition.getLatitude(), vehiclePosition.getLongitude()), new LatLng(vehiclePosition.getLatitude(), vehiclePosition.getLongitude())));
+            if (buttonMove.callOnClick()) {
+                mapStatusButton.setText("맵 이동");
+                nMap.setExtent(null);
+                }
+            }
+        }
+
+        else {
+            buttonLock.setVisibility(View.INVISIBLE);
+            buttonMove.setVisibility(View.INVISIBLE);
+        }
+    }
+
 
     @UiThread
     @Override
     public void onMapReady(@NonNull NaverMap naverMap) {
         naverMap.setMapType(NaverMap.MapType.Hybrid);
-        naverMap.setLocationTrackingMode(LocationTrackingMode.Follow);
+        naverMap.setLocationSource(locationSource);
+        naverMap.setLocationTrackingMode(LocationTrackingMode.Face);
+        CameraPosition cameraPosition = naverMap.getCameraPosition();
+        CameraUpdate cameraUpdate = CameraUpdate.toCameraPosition(cameraPosition);
+        naverMap.moveCamera(cameraUpdate);
         nMap = naverMap;
-
     }
 
 
@@ -155,6 +191,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             case AttributeEvent.GPS_POSITION:
                 updateGps();
                 updateArmButton();
+
                 break;
 
             case AttributeEvent.STATE_UPDATED:
@@ -300,7 +337,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         } else if (vehicleState.isArmed()) {
             // Take off
-            ControlApi.getApi(this.drone).takeoff(10, new AbstractCommandListener() {
+            ControlApi.getApi(this.drone).takeoff(5, new AbstractCommandListener() {
 
                 @Override
                 public void onSuccess() {
@@ -336,6 +373,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
+    Marker marker = new Marker();
     @UiThread
     protected void updateGps() {
         Gps droneGps = this.drone.getAttribute(AttributeType.GPS);
@@ -343,11 +381,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         LatLng LatLng = new LatLng(vehiclePosition.getLatitude(), vehiclePosition.getLongitude());
         CameraUpdate cameraUpdate = CameraUpdate.scrollTo(LatLng);
         nMap.moveCamera(cameraUpdate);
-
-        Marker marker = new Marker();
+        marker.setMap(null);
         marker.setPosition(LatLng);
-        marker.setIcon(OverlayImage.fromResource(R.drawable.slide_up_16));
+        marker.setIcon(OverlayImage.fromResource(R.drawable.slide_up_32));
+        Attitude yawCondition = this.drone.getAttribute(AttributeType.ATTITUDE);
+        double angle = yawCondition.getYaw();
+        float setAngle = (float) angle;
+        marker.setAngle(setAngle);
         marker.setMap(nMap);
+        marker.setAnchor(new PointF(0.5f, 1));
     }
 
     protected void updateAltitude() {
