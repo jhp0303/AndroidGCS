@@ -98,29 +98,20 @@
         android:layout_marginLeft="360dp"
         android:layout_marginRight="280dp">
 
-
         <Button
             android:id="@+id/mapMove"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="맵 이동"
-            android:onClick="mapLockStat"
-            android:visibility="invisible" />
+            android:visibility="visible"/>
 
         <Button
             android:id="@+id/mapLock"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="맵 잠금"
-            android:onClick="mapLockStat"
-            android:visibility="invisible" />
+            android:visibility="visible"/>
 
-        <Button
-            android:id="@+id/mapLockStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="맵 잠금"
-            android:onClick="mapLockStat"/>
     </LinearLayout>
 
     <LinearLayout
@@ -149,12 +140,6 @@
             android:layout_height="wrap_content"
             android:text="일반지도"/>
 
-        <Button
-            android:id="@+id/mapStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="일반지도"/>
-
     </LinearLayout>
 
     <LinearLayout
@@ -176,12 +161,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="지적도ON"/>
-
-        <Button
-            android:id="@+id/mapOnOff"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="지적도"/>
 
     </LinearLayout>
 

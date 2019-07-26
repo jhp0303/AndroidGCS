@@ -26,10 +26,14 @@ import com.naver.maps.map.LocationSource;
 import com.naver.maps.map.LocationTrackingMode;
 import com.naver.maps.map.MapFragment;
 import com.naver.maps.map.NaverMap;
+import com.naver.maps.map.NaverMapOptions;
 import com.naver.maps.map.OnMapReadyCallback;
+import com.naver.maps.map.UiSettings;
 import com.naver.maps.map.overlay.LocationOverlay;
 import com.naver.maps.map.overlay.Marker;
 import com.naver.maps.map.overlay.OverlayImage;
+import com.naver.maps.map.overlay.PathOverlay;
+import com.naver.maps.map.overlay.PolylineOverlay;
 import com.naver.maps.map.util.FusedLocationSource;
 import com.o3dr.android.client.ControlTower;
 import com.o3dr.android.client.Drone;
@@ -54,6 +58,9 @@ import com.o3dr.services.android.lib.gcs.link.LinkConnectionStatus;
 import com.o3dr.services.android.lib.model.AbstractCommandListener;
 import com.o3dr.services.android.lib.model.SimpleCommandListener;
 
+import java.sql.BatchUpdateException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, DroneListener, TowerListener, LinkListener {
@@ -107,38 +114,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         locationSource = new FusedLocationSource(this, LOCATION_PERMISSION_REQUEST_CODE);
 
+
     }
-
-    public void mapLockStat(View v) {
-        Button mapStatusButton = (Button) findViewById(R.id.mapLockStatus);
-        Button buttonLock = (Button) findViewById(R.id.mapLock);
-        Button buttonMove = (Button) findViewById(R.id.mapMove);
-        if (mapStatusButton.callOnClick()) {
-            buttonLock.setVisibility(View.VISIBLE);
-            buttonMove.setVisibility(View.VISIBLE);
-            if (buttonLock.callOnClick()) {
-                mapStatusButton.setText("맵 잠금");
-                Altitude droneAltitude = this.drone.getAttribute(AttributeType.ALTITUDE);
-                Gps droneGps = this.drone.getAttribute(AttributeType.GPS);
-                LatLong vehiclePosition = droneGps.getPosition();
-                nMap.setExtent(new LatLngBounds(new LatLng(vehiclePosition.getLatitude(), vehiclePosition.getLongitude()), new LatLng(vehiclePosition.getLatitude(), vehiclePosition.getLongitude())));
-            if (buttonMove.callOnClick()) {
-                mapStatusButton.setText("맵 이동");
-                nMap.setExtent(null);
-                }
-            }
-        }
-
-        else {
-            buttonLock.setVisibility(View.INVISIBLE);
-            buttonMove.setVisibility(View.INVISIBLE);
-        }
-    }
-
 
     @UiThread
     @Override
-    public void onMapReady(@NonNull NaverMap naverMap) {
+    public void onMapReady(@NonNull final NaverMap naverMap) {
         naverMap.setMapType(NaverMap.MapType.Hybrid);
         naverMap.setLocationSource(locationSource);
         naverMap.setLocationTrackingMode(LocationTrackingMode.Face);
@@ -146,6 +127,109 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         CameraUpdate cameraUpdate = CameraUpdate.toCameraPosition(cameraPosition);
         naverMap.moveCamera(cameraUpdate);
         nMap = naverMap;
+
+        final Button buttonLock = (Button) findViewById(R.id.mapLock);
+        final Button buttonMove = (Button) findViewById(R.id.mapMove);
+        final Button buttonsatel = (Button) findViewById(R.id.satelliteMap);
+        final Button buttontopo = (Button) findViewById(R.id.topographicMap);
+        final Button buttongeneral = (Button) findViewById(R.id.generalMap);
+        final Button buttonmapOff = (Button) findViewById(R.id.mapOff);
+        final Button buttonmapOn = (Button) findViewById(R.id.mapOn);
+        final UiSettings uiSettings = naverMap.getUiSettings();
+        View.OnClickListener listener = new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                switch (v.getId()) {
+                    case R.id.CLEAR:
+
+                        break;
+
+                    case R.id.mapMove:
+                        if(buttonLock.getVisibility() == View.VISIBLE) {
+                            buttonLock.setVisibility(View.GONE);
+                        }
+                        else{
+                            buttonLock.setVisibility(View.VISIBLE);
+                        }
+                        uiSettings.setScrollGesturesEnabled(true);
+                        break;
+
+                    case R.id.mapLock:
+                        if(buttonMove.getVisibility() == View.VISIBLE) {
+                            buttonMove.setVisibility(View.GONE);
+                        }
+                        else {
+                            buttonMove.setVisibility(View.VISIBLE);
+                        }
+
+                        uiSettings.setScrollGesturesEnabled(false);
+                        break;
+
+                    case R.id.satelliteMap:
+                        if(buttontopo.getVisibility() == View.VISIBLE) {
+                            buttontopo.setVisibility(View.GONE);
+                            buttongeneral.setVisibility(View.GONE);
+                        }
+                        else{
+                            buttontopo.setVisibility(View.VISIBLE);
+                            buttongeneral.setVisibility(View.VISIBLE);
+                        }
+                        naverMap.setMapType(NaverMap.MapType.Satellite);
+                        break;
+
+                    case R.id.topographicMap:
+                        if(buttonsatel.getVisibility() == View.VISIBLE) {
+                            buttonsatel.setVisibility(View.GONE);
+                            buttongeneral.setVisibility(View.GONE);
+                        }
+                        else{
+                            buttonsatel.setVisibility(View.VISIBLE);
+                            buttongeneral.setVisibility(View.VISIBLE);
+                        }
+                        naverMap.setMapType(NaverMap.MapType.Terrain);
+                        break;
+
+                    case R.id.generalMap:
+                        if(buttontopo.getVisibility() == View.VISIBLE) {
+                            buttontopo.setVisibility(View.GONE);
+                            buttonsatel.setVisibility(View.GONE);
+                        }
+                        else{
+                            buttontopo.setVisibility(View.VISIBLE);
+                            buttonsatel.setVisibility(View.VISIBLE);
+                        }
+                        naverMap.setMapType(NaverMap.MapType.Basic);
+                        break;
+
+                    case R.id.mapOff:
+                        if(buttonmapOn.getVisibility() == View.VISIBLE) {
+                            buttonmapOn.setVisibility(View.GONE);
+                        }
+                        else{
+                            buttonmapOn.setVisibility(View.VISIBLE);
+                        }
+                        naverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_CADASTRAL, false);
+                        break;
+
+                    case R.id.mapOn:
+                        if(buttonmapOff.getVisibility() == View.VISIBLE) {
+                            buttonmapOff.setVisibility(View.GONE);
+                        }
+                        else{
+                            buttonmapOff.setVisibility(View.VISIBLE);
+                        }
+                        naverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_CADASTRAL, true);
+                        break;
+                }
+            }
+        };
+        buttonLock.setOnClickListener(listener);
+        buttonMove.setOnClickListener(listener);
+        buttonsatel.setOnClickListener(listener);
+        buttontopo.setOnClickListener(listener);
+        buttongeneral.setOnClickListener(listener);
+        buttonmapOff.setOnClickListener(listener);
+        buttonmapOn.setOnClickListener(listener);
     }
 
 
@@ -390,6 +474,26 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         marker.setAngle(setAngle);
         marker.setMap(nMap);
         marker.setAnchor(new PointF(0.5f, 1));
+
+        final Button buttonClear = (Button) findViewById(R.id.CLEAR);
+        final ArrayList<LatLng> markersLatLng = new ArrayList<>();
+        markersLatLng.add(LatLng);
+        final PolylineOverlay polyline = new PolylineOverlay();
+        for (int i=0; i < markersLatLng.size(); )
+        polyline.setCoords(markersLatLng);
+        polyline.setMap(nMap);
+        View.OnClickListener listener = new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                switch (v.getId()) {
+                    case R.id.CLEAR:
+                        markersLatLng.clear();
+                        break;
+                }
+            }
+        };
+        buttonClear.setOnClickListener(listener);
+
     }
 
     protected void updateAltitude() {
