@@ -175,7 +175,8 @@
             android:id="@+id/CLEAR"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="CLEAR"/>
+            android:text="CLEAR"
+            android:onClick="clearButton"/>
     </LinearLayout>
 
 

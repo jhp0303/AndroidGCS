@@ -2,6 +2,7 @@ package com.jangin.navermap;
 
 import android.content.Context;
 import android.content.pm.ActivityInfo;
+import android.graphics.Color;
 import android.graphics.PointF;
 import android.os.Handler;
 import android.support.annotation.NonNull;
@@ -19,20 +20,15 @@ import android.widget.Toast;
 
 import com.example.mygcs.R;
 import com.naver.maps.geometry.LatLng;
-import com.naver.maps.geometry.LatLngBounds;
 import com.naver.maps.map.CameraPosition;
 import com.naver.maps.map.CameraUpdate;
-import com.naver.maps.map.LocationSource;
 import com.naver.maps.map.LocationTrackingMode;
 import com.naver.maps.map.MapFragment;
 import com.naver.maps.map.NaverMap;
-import com.naver.maps.map.NaverMapOptions;
 import com.naver.maps.map.OnMapReadyCallback;
 import com.naver.maps.map.UiSettings;
-import com.naver.maps.map.overlay.LocationOverlay;
 import com.naver.maps.map.overlay.Marker;
 import com.naver.maps.map.overlay.OverlayImage;
-import com.naver.maps.map.overlay.PathOverlay;
 import com.naver.maps.map.overlay.PolylineOverlay;
 import com.naver.maps.map.util.FusedLocationSource;
 import com.o3dr.android.client.ControlTower;
@@ -58,9 +54,7 @@ import com.o3dr.services.android.lib.gcs.link.LinkConnectionStatus;
 import com.o3dr.services.android.lib.model.AbstractCommandListener;
 import com.o3dr.services.android.lib.model.SimpleCommandListener;
 
-import java.sql.BatchUpdateException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, DroneListener, TowerListener, LinkListener {
@@ -319,9 +313,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void updateYaw() {
         Attitude yawCondition = this.drone.getAttribute(AttributeType.ATTITUDE);
-        yawCondition.getYaw();
+        double angle = yawCondition.getYaw();
+        if (angle < 0) {
+            angle = (float)(360 - angle);
+        }
         Button voltageButton = (Button) findViewById(R.id.yaw);
-        voltageButton.setText(String.format("Yaw " + "%3.0f", yawCondition.getYaw()) + "deg");
+        voltageButton.setText(String.format("Yaw " + "%3.0f", angle) + "deg");
     }
 
     private void updateVoltage() {
@@ -421,7 +418,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             });
         } else if (vehicleState.isArmed()) {
             // Take off
-            ControlApi.getApi(this.drone).takeoff(5, new AbstractCommandListener() {
+            ControlApi.getApi(this.drone).takeoff(3, new AbstractCommandListener() {
 
                 @Override
                 public void onSuccess() {
@@ -458,6 +455,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     Marker marker = new Marker();
+    final ArrayList<LatLng> markersLatLng = new ArrayList<>();
+    final PolylineOverlay polyline = new PolylineOverlay ();
     @UiThread
     protected void updateGps() {
         Gps droneGps = this.drone.getAttribute(AttributeType.GPS);
@@ -467,33 +466,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         nMap.moveCamera(cameraUpdate);
         marker.setMap(null);
         marker.setPosition(LatLng);
-        marker.setIcon(OverlayImage.fromResource(R.drawable.slide_up_32));
+        marker.setIcon(OverlayImage.fromResource(R.drawable.triangle_long));
         Attitude yawCondition = this.drone.getAttribute(AttributeType.ATTITUDE);
         double angle = yawCondition.getYaw();
-        float setAngle = (float) angle;
-        marker.setAngle(setAngle);
+        float floatAngle = 0;
+        if (angle < 0) {
+            floatAngle = (float)(360 - angle);
+        }
+        marker.setAngle(floatAngle);
         marker.setMap(nMap);
         marker.setAnchor(new PointF(0.5f, 1));
 
-        final Button buttonClear = (Button) findViewById(R.id.CLEAR);
-        final ArrayList<LatLng> markersLatLng = new ArrayList<>();
         markersLatLng.add(LatLng);
-        final PolylineOverlay polyline = new PolylineOverlay();
-        for (int i=0; i < markersLatLng.size(); )
-        polyline.setCoords(markersLatLng);
-        polyline.setMap(nMap);
-        View.OnClickListener listener = new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                switch (v.getId()) {
-                    case R.id.CLEAR:
-                        markersLatLng.clear();
-                        break;
-                }
-            }
-        };
-        buttonClear.setOnClickListener(listener);
 
+        polyline.setCoords(markersLatLng);
+        polyline.setColor(Color.rgb(0, 216, 255));
+        polyline.setWidth(15);
+        polyline.setMap(nMap);
+    }
+
+    public void clearButton(View v) {
+        markersLatLng.clear();
+        polyline.setMap(null);
     }
 
     protected void updateAltitude() {
