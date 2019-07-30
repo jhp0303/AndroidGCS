@@ -6,6 +6,8 @@
     android:layout_height="match_parent"
     tools:context="com.jangin.navermap.MainActivity">
 
+
+
     <FrameLayout
         android:id="@+id/frameLayout"
         android:layout_width="match_parent"
@@ -20,6 +22,7 @@
             android:id="@+id/btnConnect"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
             android:onClick="onBtnConnectTap"
             android:text="@string/button_connect" />
 
@@ -40,7 +43,9 @@
         android:layout_height="match_parent"
         android:orientation="horizontal"
         android:gravity="center_horizontal"
-        android:weightSum="100">
+        android:layout_marginBottom="380dp"
+        android:weightSum="100"
+        android:background="#8C000000">
 
 
         <Button
@@ -48,17 +53,19 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/button_voltage"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:background="#00000000"
+            android:textColor="@android:color/white"/>
 
         <Spinner
             android:id="@+id/modeSelect"
             android:entries="@array/flightMode"
             android:layout_width="75dp"
-            android:layout_height="36dp"
-            android:background="#D5D5D5"
+            android:layout_height="31dp"
             android:spinnerMode="dropdown"
             android:text="@string/button_flightMode"
-            android:layout_weight="1"/>
+            android:layout_weight="1"
+            android:background="#4DFFFFFF" />
 
 
         <Button
@@ -66,28 +73,36 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/button_altitude"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:background="#00000000"
+            android:textColor="@android:color/white"/>
 
         <Button
             android:id="@+id/speed"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/button_speed"
-            android:layout_weight="1"/>
+            android:layout_weight="1"
+            android:background="#00000000"
+            android:textColor="@android:color/white"/>
 
         <Button
             android:id="@+id/yaw"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/button_yaw"
-            android:layout_weight="1"/>
+            android:layout_weight="1"
+            android:background="#00000000"
+            android:textColor="@android:color/white"/>
 
         <Button
             android:id="@+id/Satellite"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/button_satellite"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:background="#00000000"
+            android:textColor="@android:color/white"/>
     </LinearLayout>
 
     <LinearLayout
@@ -110,6 +125,13 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="맵 잠금"
+            android:visibility="visible"/>
+
+        <Button
+            android:id="@+id/mapLockMove"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="맵 선택"
             android:visibility="visible"/>
 
     </LinearLayout>
@@ -140,6 +162,13 @@
             android:layout_height="wrap_content"
             android:text="일반지도"/>
 
+        <Button
+            android:id="@+id/selectMap"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="지도선택"
+            android:visibility="visible"/>
+
     </LinearLayout>
 
     <LinearLayout
@@ -161,6 +190,13 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="지적도ON"/>
+
+        <Button
+            android:id="@+id/mapOnOff"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="지적도선택"
+            android:visibility="visible"/>
 
     </LinearLayout>
 

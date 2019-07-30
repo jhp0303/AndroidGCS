@@ -1,9 +1,12 @@
 package com.jangin.navermap;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.graphics.PointF;
+import android.location.LocationManager;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.UiThread;
@@ -11,11 +14,15 @@ import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.mygcs.R;
@@ -54,6 +61,8 @@ import com.o3dr.services.android.lib.gcs.link.LinkConnectionStatus;
 import com.o3dr.services.android.lib.model.AbstractCommandListener;
 import com.o3dr.services.android.lib.model.SimpleCommandListener;
 
+import org.droidplanner.services.android.impl.core.drone.variables.Camera;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -75,6 +84,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onCreate(Bundle savedInstanceState) {
         Log.i(TAG, "Start mainActivity");
         super.onCreate(savedInstanceState);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_main);
         this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LOCKED);
 
@@ -90,7 +101,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             mNaverMapFragment = MapFragment.newInstance();
             fm.beginTransaction().add(R.id.map, mNaverMapFragment).commit();
         }
-
         mNaverMapFragment.getMapAsync(this);
 
         this.modeSelector = (Spinner) findViewById(R.id.modeSelect);
@@ -106,9 +116,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
-        locationSource = new FusedLocationSource(this, LOCATION_PERMISSION_REQUEST_CODE);
+        locationSource =
+                new FusedLocationSource(this, LOCATION_PERMISSION_REQUEST_CODE);
 
 
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,  @NonNull int[] grantResults) {
+        if (locationSource.onRequestPermissionsResult(
+                requestCode, permissions, grantResults)) {
+            return;
+        }
+        super.onRequestPermissionsResult(
+                requestCode, permissions, grantResults);
     }
 
     @UiThread
@@ -116,17 +138,21 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onMapReady(@NonNull final NaverMap naverMap) {
         naverMap.setMapType(NaverMap.MapType.Hybrid);
         naverMap.setLocationSource(locationSource);
-        naverMap.setLocationTrackingMode(LocationTrackingMode.Face);
+        naverMap.setLocationTrackingMode(LocationTrackingMode.Follow);
+
         CameraPosition cameraPosition = naverMap.getCameraPosition();
         CameraUpdate cameraUpdate = CameraUpdate.toCameraPosition(cameraPosition);
         naverMap.moveCamera(cameraUpdate);
         nMap = naverMap;
 
+        final Button buttonLockMove = (Button) findViewById(R.id.mapLockMove);
         final Button buttonLock = (Button) findViewById(R.id.mapLock);
         final Button buttonMove = (Button) findViewById(R.id.mapMove);
+        final Button buttonselectMap = (Button) findViewById(R.id.selectMap);
         final Button buttonsatel = (Button) findViewById(R.id.satelliteMap);
         final Button buttontopo = (Button) findViewById(R.id.topographicMap);
         final Button buttongeneral = (Button) findViewById(R.id.generalMap);
+        final Button buttonOnOff = (Button) findViewById(R.id.mapOnOff);
         final Button buttonmapOff = (Button) findViewById(R.id.mapOff);
         final Button buttonmapOn = (Button) findViewById(R.id.mapOn);
         final UiSettings uiSettings = naverMap.getUiSettings();
@@ -138,90 +164,100 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                         break;
 
-                    case R.id.mapMove:
-                        if(buttonLock.getVisibility() == View.VISIBLE) {
+                    case R.id.mapLockMove:
+                        if (buttonLock.getVisibility() == View.VISIBLE) {
                             buttonLock.setVisibility(View.GONE);
-                        }
-                        else{
+                            buttonMove.setVisibility(View.GONE);
+                        } else {
                             buttonLock.setVisibility(View.VISIBLE);
+                            buttonMove.setVisibility(View.VISIBLE);
                         }
-                        uiSettings.setScrollGesturesEnabled(true);
                         break;
 
                     case R.id.mapLock:
-                        if(buttonMove.getVisibility() == View.VISIBLE) {
-                            buttonMove.setVisibility(View.GONE);
-                        }
-                        else {
-                            buttonMove.setVisibility(View.VISIBLE);
-                        }
-
+                        buttonLock.setVisibility(View.GONE);
+                        buttonMove.setVisibility(View.GONE);
+                        buttonLockMove.setText("맵 잠금");
                         uiSettings.setScrollGesturesEnabled(false);
                         break;
 
-                    case R.id.satelliteMap:
-                        if(buttontopo.getVisibility() == View.VISIBLE) {
+                    case R.id.mapMove:
+                        buttonLock.setVisibility(View.GONE);
+                        buttonMove.setVisibility(View.GONE);
+                        buttonLockMove.setText("맵 이동");
+                        uiSettings.setScrollGesturesEnabled(true);
+                        break;
+
+                    case R.id.selectMap:
+                        if (buttontopo.getVisibility() == View.VISIBLE) {
                             buttontopo.setVisibility(View.GONE);
                             buttongeneral.setVisibility(View.GONE);
-                        }
-                        else{
+                            buttonsatel.setVisibility(View.GONE);
+                        } else {
                             buttontopo.setVisibility(View.VISIBLE);
                             buttongeneral.setVisibility(View.VISIBLE);
+                            buttonsatel.setVisibility(View.VISIBLE);
                         }
+                        break;
+
+                    case R.id.satelliteMap:
+                        buttontopo.setVisibility(View.GONE);
+                        buttongeneral.setVisibility(View.GONE);
+                        buttonsatel.setVisibility(View.GONE);
+                        buttonselectMap.setText("위성지도");
                         naverMap.setMapType(NaverMap.MapType.Satellite);
                         break;
 
                     case R.id.topographicMap:
-                        if(buttonsatel.getVisibility() == View.VISIBLE) {
-                            buttonsatel.setVisibility(View.GONE);
-                            buttongeneral.setVisibility(View.GONE);
-                        }
-                        else{
-                            buttonsatel.setVisibility(View.VISIBLE);
-                            buttongeneral.setVisibility(View.VISIBLE);
-                        }
+                        buttontopo.setVisibility(View.GONE);
+                        buttongeneral.setVisibility(View.GONE);
+                        buttonsatel.setVisibility(View.GONE);
+                        buttonselectMap.setText("지형도");
                         naverMap.setMapType(NaverMap.MapType.Terrain);
                         break;
 
                     case R.id.generalMap:
-                        if(buttontopo.getVisibility() == View.VISIBLE) {
-                            buttontopo.setVisibility(View.GONE);
-                            buttonsatel.setVisibility(View.GONE);
-                        }
-                        else{
-                            buttontopo.setVisibility(View.VISIBLE);
-                            buttonsatel.setVisibility(View.VISIBLE);
-                        }
+                        buttontopo.setVisibility(View.GONE);
+                        buttongeneral.setVisibility(View.GONE);
+                        buttonsatel.setVisibility(View.GONE);
+                        buttonselectMap.setText("일반지도");
                         naverMap.setMapType(NaverMap.MapType.Basic);
                         break;
 
-                    case R.id.mapOff:
-                        if(buttonmapOn.getVisibility() == View.VISIBLE) {
+                    case R.id.mapOnOff:
+                        if (buttonmapOn.getVisibility() == View.VISIBLE) {
                             buttonmapOn.setVisibility(View.GONE);
-                        }
-                        else{
+                            buttonmapOff.setVisibility(View.GONE);
+                        } else {
                             buttonmapOn.setVisibility(View.VISIBLE);
+                            buttonmapOff.setVisibility(View.VISIBLE);
                         }
+                        break;
+
+                    case R.id.mapOff:
+                        buttonmapOn.setVisibility(View.GONE);
+                        buttonmapOff.setVisibility(View.GONE);
+                        buttonOnOff.setText("지적도OFF");
                         naverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_CADASTRAL, false);
                         break;
 
                     case R.id.mapOn:
-                        if(buttonmapOff.getVisibility() == View.VISIBLE) {
-                            buttonmapOff.setVisibility(View.GONE);
-                        }
-                        else{
-                            buttonmapOff.setVisibility(View.VISIBLE);
-                        }
+                        buttonmapOn.setVisibility(View.GONE);
+                        buttonmapOff.setVisibility(View.GONE);
+                        buttonOnOff.setText("지적도ON");
                         naverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_CADASTRAL, true);
                         break;
                 }
             }
         };
+        buttonLockMove.setOnClickListener(listener);
         buttonLock.setOnClickListener(listener);
         buttonMove.setOnClickListener(listener);
+        buttonselectMap.setOnClickListener(listener);
         buttonsatel.setOnClickListener(listener);
         buttontopo.setOnClickListener(listener);
         buttongeneral.setOnClickListener(listener);
+        buttonOnOff.setOnClickListener(listener);
         buttonmapOff.setOnClickListener(listener);
         buttonmapOn.setOnClickListener(listener);
     }
@@ -315,7 +351,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Attitude yawCondition = this.drone.getAttribute(AttributeType.ATTITUDE);
         double angle = yawCondition.getYaw();
         if (angle < 0) {
-            angle = (float)(360 - angle);
+            angle = (float) (360 + angle);
         }
         Button voltageButton = (Button) findViewById(R.id.yaw);
         voltageButton.setText(String.format("Yaw " + "%3.0f", angle) + "deg");
@@ -325,7 +361,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Battery vehicleBattery = this.drone.getAttribute(AttributeType.BATTERY);
         vehicleBattery.getBatteryVoltage();
         Button voltageButton = (Button) findViewById(R.id.voltage);
-        voltageButton.setText(String.format("전압 " + "%3.1f", vehicleBattery.getBatteryVoltage()));
+        voltageButton.setText(String.format("전압 " + "%3.1f", vehicleBattery.getBatteryVoltage()) + "V");
     }
 
     private void processGpsState() {
@@ -378,6 +414,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         this.modeSelector.setSelection(arrayAdapter.getPosition(vehicleMode));
     }
 
+
     protected void updateArmButton() {
         State vehicleState = this.drone.getAttribute(AttributeType.STATE);
         Button armButton = (Button) findViewById(R.id.btnARM);
@@ -401,21 +438,49 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void onArmButtonTap(View view) {
-        State vehicleState = this.drone.getAttribute(AttributeType.STATE);
+        final State vehicleState = this.drone.getAttribute(AttributeType.STATE);
 
         if (vehicleState.isFlying()) {
-            // Land
-            VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_LAND, new SimpleCommandListener() {
-                @Override
-                public void onError(int executionError) {
-                    alertUser("Unable to land the vehicle.");
-                }
+            AlertDialog.Builder ad = new AlertDialog.Builder(MainActivity.this);
+
+            ad.setTitle("경고");       // 제목 설정
+            ad.setMessage("시작시 프로펠러가 고속으로 회전합니다.");   // 내용 설정
+
+            // 확인 버튼 설정
+            ad.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                private Drone drone;
 
                 @Override
-                public void onTimeout() {
-                    alertUser("Unable to land the vehicle.");
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();     //닫기
+                    // Event
+                    VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_LAND, new SimpleCommandListener() {
+                        @Override
+                        public void onError(int executionError) {
+                            alertUser("Unable to land the vehicle.");
+                        }
+
+                        @Override
+                        public void onTimeout() {
+                            alertUser("Unable to land the vehicle.");
+                        }
+                    });
                 }
             });
+            // 취소 버튼 설정
+            ad.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();     //닫기
+                    // Event
+                }
+            });
+
+            // 창 띄우기
+            ad.show();
+            // Land
+
+
         } else if (vehicleState.isArmed()) {
             // Take off
             ControlApi.getApi(this.drone).takeoff(3, new AbstractCommandListener() {
@@ -469,11 +534,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         marker.setIcon(OverlayImage.fromResource(R.drawable.triangle_long));
         Attitude yawCondition = this.drone.getAttribute(AttributeType.ATTITUDE);
         double angle = yawCondition.getYaw();
+        float fangle = (float) angle;
         float floatAngle = 0;
         if (angle < 0) {
-            floatAngle = (float)(360 - angle);
+            floatAngle = (float)(360 + angle);
+            marker.setAngle(fangle);
         }
-        marker.setAngle(floatAngle);
+        marker.setAngle(fangle);
         marker.setMap(nMap);
         marker.setAnchor(new PointF(0.5f, 1));
 
