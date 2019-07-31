@@ -9,6 +9,7 @@ import android.graphics.PointF;
 import android.location.LocationManager;
 import android.os.Handler;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.annotation.UiThread;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
@@ -260,6 +261,62 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         buttonOnOff.setOnClickListener(listener);
         buttonmapOff.setOnClickListener(listener);
         buttonmapOn.setOnClickListener(listener);
+
+
+        State vehicleState = this.drone.getAttribute(AttributeType.STATE);
+        naverMap.setOnMapLongClickListener((coord, point) -> {
+            AlertDialog.Builder ad = new AlertDialog.Builder(this);
+            ad.setTitle("알림");       // 제목 설정
+            ad.setMessage("좌표를 찍어주세요");   // 내용 설정
+            // 확인 버튼 설정
+            ad.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();     //닫기
+                    // Event
+                    guidedMode(point);
+                }
+            });
+            // 취소 버튼 설정
+            ad.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();     //닫기
+                    // Event
+                    Toast.makeText(getApplicationContext(), "You Click to No!!", Toast.LENGTH_SHORT).show();
+                }
+            });
+            // 창 띄우기
+            ad.show();
+        });
+    }
+    public void guidedMode(LatLng latLng) {
+        LatLng nowLatLng = new LatLng(latLng.latitude, latLng.longitude);
+        LatLong nowLatLong = new LatLong(latLng.latitude, latLng.longitude);
+        VehicleApi.getApi(this.drone).setVehicleMode((VehicleMode.COPTER_GUIDED));
+        Marker nowmarker = new Marker();
+        ArrayList<LatLng> nowMarkersLatLng = new ArrayList<>();
+        nowMarkersLatLng.add(nowLatLng);
+        nowmarker.setPosition(nowLatLng);
+        nowmarker.setIcon(OverlayImage.fromResource(R.drawable.triangle_blank));
+        nowmarker.setMap(nMap);
+
+        ControlApi.getApi(this.drone).goTo(nowLatLong, true, new AbstractCommandListener() {
+            @Override
+            public void onSuccess() {
+                alertUser("해당 좌표로 이동합니다.");
+            }
+
+            @Override
+            public void onError(int executionError) {
+                alertUser("실패");
+            }
+
+            @Override
+            public void onTimeout() {
+                alertUser("타임아웃");
+            }
+        });
     }
 
 
@@ -458,7 +515,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else if (vehicleState.isArmed()) {
             // Take off
             ControlApi.getApi(this.drone).takeoff(3, new AbstractCommandListener() {
-
                 @Override
                 public void onSuccess() {
                     alertUser("Taking off...");
@@ -534,13 +590,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         marker.setIcon(OverlayImage.fromResource(R.drawable.triangle_long));
         Attitude yawCondition = this.drone.getAttribute(AttributeType.ATTITUDE);
         double angle = yawCondition.getYaw();
-        float fangle = (float) angle;
         float floatAngle = 0;
         if (angle < 0) {
             floatAngle = (float)(360 + angle);
-            marker.setAngle(fangle);
         }
-        marker.setAngle(fangle);
+        marker.setAngle(floatAngle);
         marker.setMap(nMap);
         marker.setAnchor(new PointF(0.5f, 1));
 

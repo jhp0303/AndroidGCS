@@ -16,7 +16,7 @@
         <FrameLayout
             android:id="@+id/map"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"/>
 
         <Button
             android:id="@+id/btnConnect"
@@ -25,6 +25,15 @@
             android:layout_marginTop="28dp"
             android:onClick="onBtnConnectTap"
             android:text="@string/button_connect" />
+
+        <Button
+            android:id="@+id/btnMission"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:layout_marginBottom="45dp"
+            android:text="임무 시작"
+            android:onClick="onBtnMission"/>
 
         <Button
             android:id="@+id/btnARM"
