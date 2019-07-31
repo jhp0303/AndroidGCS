@@ -438,48 +438,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void onArmButtonTap(View view) {
+        
         final State vehicleState = this.drone.getAttribute(AttributeType.STATE);
-
         if (vehicleState.isFlying()) {
-            AlertDialog.Builder ad = new AlertDialog.Builder(MainActivity.this);
 
-            ad.setTitle("경고");       // 제목 설정
-            ad.setMessage("시작시 프로펠러가 고속으로 회전합니다.");   // 내용 설정
-
-            // 확인 버튼 설정
-            ad.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                private Drone drone;
-
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    dialog.dismiss();     //닫기
-                    // Event
-                    VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_LAND, new SimpleCommandListener() {
-                        @Override
-                        public void onError(int executionError) {
-                            alertUser("Unable to land the vehicle.");
-                        }
-
-                        @Override
-                        public void onTimeout() {
-                            alertUser("Unable to land the vehicle.");
-                        }
-                    });
-                }
-            });
-            // 취소 버튼 설정
-            ad.setNegativeButton("No", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    dialog.dismiss();     //닫기
-                    // Event
-                }
-            });
-
-            // 창 띄우기
-            ad.show();
             // Land
+            VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_LAND, new SimpleCommandListener() {
+                @Override
+                public void onError(int executionError) {
+                    alertUser("Unable to land the vehicle.");
+                }
 
+                @Override
+                public void onTimeout() {
+                    alertUser("Unable to land the vehicle.");
+                }
+            });
 
         } else if (vehicleState.isArmed()) {
             // Take off
@@ -505,18 +479,44 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             alertUser("Connect to a drone first");
         } else {
             // Connected but not Armed
-            VehicleApi.getApi(this.drone).arm(true, false, new SimpleCommandListener() {
+            AlertDialog.Builder ad = new AlertDialog.Builder(this);
+            ad.setTitle("경고");       // 제목 설정
+            ad.setMessage("시작시 프로펠러가 고속으로 회전합니다.");   // 내용 설정
+            // 확인 버튼 설정
+            ad.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                 @Override
-                public void onError(int executionError) {
-                    alertUser("Unable to arm vehicle.");
-                }
-
-                @Override
-                public void onTimeout() {
-                    alertUser("Arming operation timed out.");
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();     //닫기
+                    // Event
+                    sidong();   //콜백부분이 문제가 되서 해당 펑션을 따로 빼서 함수명으로 불러옴
                 }
             });
+            // 취소 버튼 설정
+            ad.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();     //닫기
+                    // Event
+                    Toast.makeText(getApplicationContext(), "You Click to No!!", Toast.LENGTH_SHORT).show();
+                }
+            });
+            // 창 띄우기
+            ad.show();
         }
+    }
+
+    public void sidong() {
+        VehicleApi.getApi(this.drone).arm(true, false, new SimpleCommandListener() {
+            @Override
+            public void onError(int executionError) {
+                alertUser("Unable to arm vehicle.");
+            }
+
+            @Override
+            public void onTimeout() {
+                alertUser("Arming operation timed out.");
+            }
+        });
     }
 
     Marker marker = new Marker();
