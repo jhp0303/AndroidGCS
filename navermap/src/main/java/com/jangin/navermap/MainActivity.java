@@ -6,24 +6,19 @@ import android.content.DialogInterface;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.graphics.PointF;
-import android.location.LocationManager;
 import android.os.Handler;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.annotation.UiThread;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.mygcs.R;
@@ -62,7 +57,6 @@ import com.o3dr.services.android.lib.gcs.link.LinkConnectionStatus;
 import com.o3dr.services.android.lib.model.AbstractCommandListener;
 import com.o3dr.services.android.lib.model.SimpleCommandListener;
 
-import org.droidplanner.services.android.impl.core.drone.variables.Camera;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -125,7 +119,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
-                                           @NonNull String[] permissions,  @NonNull int[] grantResults) {
+                                           @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (locationSource.onRequestPermissionsResult(
                 requestCode, permissions, grantResults)) {
             return;
@@ -267,7 +261,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         naverMap.setOnMapLongClickListener((coord, point) -> {
             AlertDialog.Builder ad = new AlertDialog.Builder(this);
             ad.setTitle("알림");       // 제목 설정
-            ad.setMessage("좌표를 찍어주세요");   // 내용 설정
+            ad.setMessage("해당좌표로 이동합니다.");   // 내용 설정
             // 확인 버튼 설정
             ad.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                 @Override
@@ -289,7 +283,32 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             // 창 띄우기
             ad.show();
         });
+
+        Button btnAltitude = (Button) findViewById(R.id.btnAlti);
+        View.OnClickListener listeners = new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (btnAltitude.getText() == "이륙고도") {
+                    Log.d("myLog", "이륙고도3M");
+                    btnAltitude.setText("3M");
+                } else if (btnAltitude.getText() == "3M") {
+                    Log.d("myLog", "이륙고도5M");
+                    btnAltitude.setText("5M");
+                } else if (btnAltitude.getText() == "5M") {
+                    Log.d("myLog", "이륙고도M");
+                    btnAltitude.setText("8M");
+                } else if (btnAltitude.getText() == "8M") {
+                    Log.d("myLog", "이륙고도10M");
+                    btnAltitude.setText("10M");
+                } else {
+                    Log.d("myLog", "이륙고도");
+                    btnAltitude.setText("이륙고도");
+                }
+            }
+        };
+        btnAltitude.setOnClickListener(listeners);
     }
+
     public void guidedMode(LatLng latLng) {
         LatLng nowLatLng = new LatLng(latLng.latitude, latLng.longitude);
         LatLong nowLatLong = new LatLong(latLng.latitude, latLng.longitude);
@@ -298,7 +317,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         ArrayList<LatLng> nowMarkersLatLng = new ArrayList<>();
         nowMarkersLatLng.add(nowLatLng);
         nowmarker.setPosition(nowLatLng);
-        nowmarker.setIcon(OverlayImage.fromResource(R.drawable.triangle_blank));
+        nowmarker.setIcon(OverlayImage.fromResource(R.drawable.marker_24));
         nowmarker.setMap(nMap);
 
         ControlApi.getApi(this.drone).goTo(nowLatLong, true, new AbstractCommandListener() {
@@ -471,11 +490,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         this.modeSelector.setSelection(arrayAdapter.getPosition(vehicleMode));
     }
 
-
     protected void updateArmButton() {
         State vehicleState = this.drone.getAttribute(AttributeType.STATE);
         Button armButton = (Button) findViewById(R.id.btnARM);
-
         if (!this.drone.isConnected()) {
             armButton.setVisibility(View.INVISIBLE);
         } else {
@@ -495,10 +512,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void onArmButtonTap(View view) {
-        
         final State vehicleState = this.drone.getAttribute(AttributeType.STATE);
+        Button btnAltitude = (Button) findViewById(R.id.btnAlti);
         if (vehicleState.isFlying()) {
-
             // Land
             VehicleApi.getApi(this.drone).setVehicleMode(VehicleMode.COPTER_LAND, new SimpleCommandListener() {
                 @Override
@@ -511,10 +527,25 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     alertUser("Unable to land the vehicle.");
                 }
             });
-
         } else if (vehicleState.isArmed()) {
+
+            int altitude = 0;
+            if (btnAltitude.getText() == "3M") {
+                altitude = 3;
+                Log.d("myLog", "고도3M");
+            } else if (btnAltitude.getText() == "고도5M") {
+                altitude = 5;
+                Log.d("myLog", "5M");
+            } else if (btnAltitude.getText() == "고도8M") {
+                altitude = 8;
+                Log.d("myLog", "8M");
+            } else if (btnAltitude.getText() == "고도10M") {
+                altitude = 10;
+                Log.d("myLog", "10M");
+            }
+
             // Take off
-            ControlApi.getApi(this.drone).takeoff(3, new AbstractCommandListener() {
+            ControlApi.getApi(this.drone).takeoff(altitude, new AbstractCommandListener() {
                 @Override
                 public void onSuccess() {
                     alertUser("Taking off...");
@@ -577,7 +608,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     Marker marker = new Marker();
     final ArrayList<LatLng> markersLatLng = new ArrayList<>();
-    final PolylineOverlay polyline = new PolylineOverlay ();
+    final PolylineOverlay polyline = new PolylineOverlay();
+
     @UiThread
     protected void updateGps() {
         Gps droneGps = this.drone.getAttribute(AttributeType.GPS);
@@ -592,7 +624,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         double angle = yawCondition.getYaw();
         float floatAngle = 0;
         if (angle < 0) {
-            floatAngle = (float)(360 + angle);
+            floatAngle = (float) (360 + angle);
         }
         marker.setAngle(floatAngle);
         marker.setMap(nMap);

@@ -19,21 +19,21 @@
             android:layout_height="match_parent"/>
 
         <Button
-            android:id="@+id/btnConnect"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
-            android:onClick="onBtnConnectTap"
-            android:text="@string/button_connect" />
-
-        <Button
-            android:id="@+id/btnMission"
+            android:id="@+id/btnAlti"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom"
-            android:layout_marginBottom="45dp"
-            android:text="임무 시작"
-            android:onClick="onBtnMission"/>
+            android:layout_marginBottom="80dp"
+            android:text="@string/button_alt"/>
+
+        <Button
+            android:id="@+id/btnConnect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="40dp"
+            android:layout_gravity="bottom"
+            android:onClick="onBtnConnectTap"
+            android:text="@string/button_connect" />
 
         <Button
             android:id="@+id/btnARM"
@@ -44,6 +44,11 @@
             android:text="@string/button_arm"
             app:layout_constraintRight_toRightOf="parent"
             android:gravity="center_vertical"/>
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/recyclerView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
 
     </FrameLayout>
 

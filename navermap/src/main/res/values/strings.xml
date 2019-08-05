@@ -10,5 +10,6 @@
     <string name="button_speed">속도</string>
     <string name="button_yaw">YAW</string>
     <string name="button_satellite">위성</string>
+    <string name="button_alt">이륙고도</string>
 
 </resources>
