@@ -12,6 +12,8 @@ import android.support.annotation.UiThread;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
@@ -114,7 +116,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         locationSource =
                 new FusedLocationSource(this, LOCATION_PERMISSION_REQUEST_CODE);
 
+        RecyclerView recyclerView = findViewById(R.id.recycler_view);
 
+        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
+        recyclerView.setLayoutManager(layoutManager);
+
+        final List<CardItem> dataList = new ArrayList<>();
+        dataList.add(new CardItem("가나다라"));
+        dataList.add(new CardItem("마바사아"));
+        dataList.add(new CardItem("자차카타"));
+        dataList.add(new CardItem("아이우에오"));
+        dataList.add(new CardItem("사시스세소"));
+
+        MyRecyclerAdapter adapter = new MyRecyclerAdapter(dataList);
+        recyclerView.setAdapter(adapter);
     }
 
     @Override
