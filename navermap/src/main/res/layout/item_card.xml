@@ -7,8 +7,7 @@
     android:layout_marginStart="8dp"
     android:layout_marginTop="8dp"
     android:layout_marginLeft="8dp"
-    android:layout_marginRight="120dp"
-    android:background="@color/colorTransparentCyan">
+    android:layout_marginRight="120dp">
 
         <TextView
             android:id="@+id/contents_text"
@@ -16,6 +15,8 @@
             android:layout_height="wrap_content"
             android:padding="10dp"
             tools:text="Contents"
-            tools:textColor="#FFFFFF" />
+            tools:textColor="#FFFFFF"
+            tools:textStyle="bold"
+            android:background="@drawable/bg_custom_button" />
 
 </LinearLayout>

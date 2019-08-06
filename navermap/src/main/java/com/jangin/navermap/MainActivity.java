@@ -15,6 +15,7 @@ import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.AdapterView;
@@ -60,8 +61,15 @@ import com.o3dr.services.android.lib.model.AbstractCommandListener;
 import com.o3dr.services.android.lib.model.SimpleCommandListener;
 
 
+import java.sql.Date;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Timer;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, DroneListener, TowerListener, LinkListener {
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1000;
@@ -74,21 +82,41 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ControlTower controlTower;
     private final Handler handler = new Handler();
     private NaverMap nMap;
+    private RecyclerView recyclerView;
 
     private Spinner modeSelector;
 
     final List<CardItem> dataList = new ArrayList<>();
+    final List<Long> time = new ArrayList<>();
 
     public void recyclerView(String b) {
         RecyclerView recyclerView = findViewById(R.id.recycler_view);
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
-
         dataList.add(0, new CardItem(b));
+        if (dataList.size() > 3) {
+            for (int i = 4; i <= dataList.size(); i++)
+                dataList.remove(dataList.size()-1);
+        }
         MyRecyclerAdapter adapter = new MyRecyclerAdapter(dataList);
         recyclerView.setAdapter(adapter);
         recyclerView.stopScroll();
+        recyclerView.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
+            @Override
+            public boolean onInterceptTouchEvent(RecyclerView rv, MotionEvent e) {
+                return true;
+            }
+
+            @Override
+            public void onTouchEvent(RecyclerView rv, MotionEvent e) {
+            }
+
+            @Override
+            public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {
+            }
+        });
     }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -126,11 +154,30 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
+
+
         locationSource =
                 new FusedLocationSource(this, LOCATION_PERMISSION_REQUEST_CODE);
+        this.recyclerView = findViewById(R.id.recycler_view);
+        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
+        this.recyclerView.setLayoutManager(layoutManager);
 
-
+        ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
+        service.scheduleAtFixedRate(runnable, 0, 2, TimeUnit.SECONDS);
     }
+
+    private int checkValue = 0;
+
+    Runnable runnable = new Runnable() {
+        @Override
+        public void run() {
+            if (dataList.size() > 0) {
+                //dataList.remove(dataList.size() - 1);
+                //MyRecyclerAdapter adapter = new MyRecyclerAdapter(dataList);
+                //recyclerView.setAdapter(adapter);
+            }
+        }
+    };
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
@@ -494,16 +541,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onSuccess() {
                 alertUser("Vehicle mode change successful.");
+                recyclerView("비행 모드가 변경 되었습니다.");
             }
 
             @Override
             public void onError(int executionError) {
                 alertUser("Vehicle mode change failed: " + executionError);
+                recyclerView("비행모드 변경이 실패했습니다. 이유: " + executionError);
             }
 
             @Override
             public void onTimeout() {
                 alertUser("Vehicle mode change timed out.");
+                recyclerView("비행모드 변경 시간 초과.");
             }
         });
     }
@@ -673,6 +723,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void clearButton(View v) {
         markersLatLng.clear();
         polyline.setMap(null);
+        recyclerView("경로가 지워졌습니다.");
     }
 
     protected void updateAltitude() {
