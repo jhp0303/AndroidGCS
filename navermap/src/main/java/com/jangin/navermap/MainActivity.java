@@ -77,6 +77,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private Spinner modeSelector;
 
+    final List<CardItem> dataList = new ArrayList<>();
+
+    public void recyclerView(String b) {
+        RecyclerView recyclerView = findViewById(R.id.recycler_view);
+        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
+        recyclerView.setLayoutManager(layoutManager);
+
+        dataList.add(0, new CardItem(b));
+        MyRecyclerAdapter adapter = new MyRecyclerAdapter(dataList);
+        recyclerView.setAdapter(adapter);
+        recyclerView.stopScroll();
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.i(TAG, "Start mainActivity");
@@ -116,20 +129,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         locationSource =
                 new FusedLocationSource(this, LOCATION_PERMISSION_REQUEST_CODE);
 
-        RecyclerView recyclerView = findViewById(R.id.recycler_view);
 
-        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
-        recyclerView.setLayoutManager(layoutManager);
-
-        final List<CardItem> dataList = new ArrayList<>();
-        dataList.add(new CardItem("가나다라"));
-        dataList.add(new CardItem("마바사아"));
-        dataList.add(new CardItem("자차카타"));
-        dataList.add(new CardItem("아이우에오"));
-        dataList.add(new CardItem("사시스세소"));
-
-        MyRecyclerAdapter adapter = new MyRecyclerAdapter(dataList);
-        recyclerView.setAdapter(adapter);
     }
 
     @Override
@@ -188,6 +188,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         buttonLock.setVisibility(View.GONE);
                         buttonMove.setVisibility(View.GONE);
                         buttonLockMove.setText("맵 잠금");
+                        recyclerView("맵이 잠겼습니다.");
                         uiSettings.setScrollGesturesEnabled(false);
                         break;
 
@@ -195,6 +196,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         buttonLock.setVisibility(View.GONE);
                         buttonMove.setVisibility(View.GONE);
                         buttonLockMove.setText("맵 이동");
+                        recyclerView("맵잠금이 풀렸습니다.");
                         uiSettings.setScrollGesturesEnabled(true);
                         break;
 
@@ -215,6 +217,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         buttongeneral.setVisibility(View.GONE);
                         buttonsatel.setVisibility(View.GONE);
                         buttonselectMap.setText("위성지도");
+                        recyclerView("위성지도로 변경 되었습니다.");
                         naverMap.setMapType(NaverMap.MapType.Satellite);
                         break;
 
@@ -223,6 +226,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         buttongeneral.setVisibility(View.GONE);
                         buttonsatel.setVisibility(View.GONE);
                         buttonselectMap.setText("지형도");
+                        recyclerView("지형도로 변경 되었습니다.");
                         naverMap.setMapType(NaverMap.MapType.Terrain);
                         break;
 
@@ -231,6 +235,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         buttongeneral.setVisibility(View.GONE);
                         buttonsatel.setVisibility(View.GONE);
                         buttonselectMap.setText("일반지도");
+                        recyclerView("일반지도로 변경 되었습니다.");
                         naverMap.setMapType(NaverMap.MapType.Basic);
                         break;
 
@@ -248,6 +253,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         buttonmapOn.setVisibility(View.GONE);
                         buttonmapOff.setVisibility(View.GONE);
                         buttonOnOff.setText("지적도OFF");
+                        recyclerView("지적도가 꺼졌습니다.");
                         naverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_CADASTRAL, false);
                         break;
 
@@ -255,6 +261,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         buttonmapOn.setVisibility(View.GONE);
                         buttonmapOff.setVisibility(View.GONE);
                         buttonOnOff.setText("지적도ON");
+                        recyclerView("지적도가 켜졌습니다.");
                         naverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_CADASTRAL, true);
                         break;
                 }
@@ -276,7 +283,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         naverMap.setOnMapLongClickListener((coord, point) -> {
             AlertDialog.Builder ad = new AlertDialog.Builder(this);
             ad.setTitle("알림");       // 제목 설정
-            ad.setMessage("해당좌표로 이동합니다.");   // 내용 설정
+            ad.setMessage("해당 좌표로 이동합니다.");   // 내용 설정
             // 확인 버튼 설정
             ad.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                 @Override
@@ -284,6 +291,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     dialog.dismiss();     //닫기
                     // Event
                     guidedMode(point);
+                    recyclerView("드론이 해당 좌표로 이동 중입니다.");
                 }
             });
             // 취소 버튼 설정
@@ -306,18 +314,23 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if (btnAltitude.getText() == "이륙고도") {
                     Log.d("myLog", "이륙고도3M");
                     btnAltitude.setText("3M");
+                    recyclerView("이륙고도가 3M로 변경되었습니다.");
                 } else if (btnAltitude.getText() == "3M") {
                     Log.d("myLog", "이륙고도5M");
                     btnAltitude.setText("5M");
+                    recyclerView("이륙고도가 5M로 변경되었습니다.");
                 } else if (btnAltitude.getText() == "5M") {
                     Log.d("myLog", "이륙고도M");
                     btnAltitude.setText("8M");
+                    recyclerView("이륙고도가 8M로 변경되었습니다.");
                 } else if (btnAltitude.getText() == "8M") {
                     Log.d("myLog", "이륙고도10M");
                     btnAltitude.setText("10M");
+                    recyclerView("이륙고도가 10M로 변경되었습니다.");
                 } else {
                     Log.d("myLog", "이륙고도");
                     btnAltitude.setText("이륙고도");
+                    recyclerView("이륙고도가 0M로 변경되었습니다.");
                 }
             }
         };
@@ -339,16 +352,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onSuccess() {
                 alertUser("해당 좌표로 이동합니다.");
+                recyclerView("가이드 모드 : 해당 좌표로 이동");
             }
 
             @Override
             public void onError(int executionError) {
                 alertUser("실패");
+                recyclerView("가이드 모드 : 실패");
             }
 
             @Override
             public void onTimeout() {
                 alertUser("타임아웃");
+                recyclerView("가이드 모드 : 타임아웃");
             }
         });
     }
@@ -378,12 +394,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         switch (event) {
             case AttributeEvent.STATE_CONNECTED:
                 alertUser("Drone Connected");
+                recyclerView("드론이 연결 되었습니다.");
                 updateConnectedButton(this.drone.isConnected());
                 updateArmButton();
                 break;
 
             case AttributeEvent.STATE_DISCONNECTED:
                 alertUser("Drone Disconnected");
+                recyclerView("드론 연결이 해제되었습니다.");
                 updateConnectedButton(this.drone.isConnected());
                 updateArmButton();
                 break;
@@ -637,11 +655,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         marker.setIcon(OverlayImage.fromResource(R.drawable.triangle_long));
         Attitude yawCondition = this.drone.getAttribute(AttributeType.ATTITUDE);
         double angle = yawCondition.getYaw();
-        float floatAngle = 0;
         if (angle < 0) {
-            floatAngle = (float) (360 + angle);
+            angle = (360 + angle);
         }
-        marker.setAngle(floatAngle);
+        marker.setAngle((float)angle);
         marker.setMap(nMap);
         marker.setAnchor(new PointF(0.5f, 1));
 
@@ -701,6 +718,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     msg = extras.getString(LinkConnectionStatus.EXTRA_ERROR_MSG);
                 }
                 alertUser("Connection Failed:" + msg);
+                recyclerView("연결 실패:" + msg);
                 break;
         }
     }
@@ -708,6 +726,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onTowerConnected() {
         alertUser("DroneKit-Android Connected");
+        recyclerView("DroneKit-Android가 연결 되었습니다.");
         this.controlTower.registerDrone(this.drone, this.handler);
         this.drone.registerDroneListener(this);
     }
@@ -715,6 +734,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onTowerDisconnected() {
         alertUser("DroneKit-Android Interrupted");
+        recyclerView("DroneKit-Android가 중단 되었습니다.");
     }
 
     protected void alertUser(String message) {
