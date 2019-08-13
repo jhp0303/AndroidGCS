@@ -30,6 +30,7 @@ public class MyRecyclerAdapter extends RecyclerView.Adapter<MyRecyclerAdapter.Vi
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         CardItem item = mDataList.get(position);
         holder.contents.setText(item.getContents());
+
     }
 
     @Override

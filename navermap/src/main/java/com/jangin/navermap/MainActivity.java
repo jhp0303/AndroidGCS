@@ -14,6 +14,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.style.UpdateAppearance;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -45,6 +46,7 @@ import com.o3dr.android.client.interfaces.DroneListener;
 import com.o3dr.android.client.interfaces.LinkListener;
 import com.o3dr.android.client.interfaces.TowerListener;
 import com.o3dr.services.android.lib.coordinate.LatLong;
+import com.o3dr.services.android.lib.coordinate.LatLongAlt;
 import com.o3dr.services.android.lib.drone.attribute.AttributeEvent;
 import com.o3dr.services.android.lib.drone.attribute.AttributeType;
 import com.o3dr.services.android.lib.drone.connection.ConnectionParameter;
@@ -59,17 +61,19 @@ import com.o3dr.services.android.lib.drone.property.VehicleMode;
 import com.o3dr.services.android.lib.gcs.link.LinkConnectionStatus;
 import com.o3dr.services.android.lib.model.AbstractCommandListener;
 import com.o3dr.services.android.lib.model.SimpleCommandListener;
+import com.o3dr.services.android.lib.util.MathUtils;
 
 
 import java.sql.Date;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import static com.o3dr.services.android.lib.util.MathUtils.getArcInRadians;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, DroneListener, TowerListener, LinkListener {
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1000;
@@ -87,34 +91,62 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Spinner modeSelector;
 
     final List<CardItem> dataList = new ArrayList<>();
-    final List<Long> time = new ArrayList<>();
+
+    MyRecyclerAdapter adapter = new MyRecyclerAdapter(dataList);
 
     public void recyclerView(String b) {
         RecyclerView recyclerView = findViewById(R.id.recycler_view);
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
+        final Runnable r = new Runnable() {
+            public void run() {
+                adapter.notifyDataSetChanged();
+            }
+        };
+        handler.post(r);
         dataList.add(0, new CardItem(b));
         if (dataList.size() > 3) {
-            for (int i = 4; i <= dataList.size(); i++)
-                dataList.remove(dataList.size()-1);
+            for (int i = 4; i <= dataList.size(); i++) {
+                dataList.remove(dataList.size() - 1);
+                recyclerView.setAdapter(adapter);
+            }
         }
-        MyRecyclerAdapter adapter = new MyRecyclerAdapter(dataList);
+
+
         recyclerView.setAdapter(adapter);
         recyclerView.stopScroll();
         recyclerView.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
             @Override
-            public boolean onInterceptTouchEvent(RecyclerView rv, MotionEvent e) {
+            public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
                 return true;
             }
 
             @Override
-            public void onTouchEvent(RecyclerView rv, MotionEvent e) {
+            public void onTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
             }
 
             @Override
             public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {
             }
         });
+    }
+
+    protected void UpdateItem() {
+        Runnable updater = new Runnable() {
+
+            @Override
+            public void run() {
+                if (dataList.size() > 0) {
+                    dataList.remove(dataList.size() - 1);
+                    Log.d("myLog", "하나 삭제");
+                } else {
+                    Log.d("myLog", "아무것도 없음");
+                }
+                recyclerView.setAdapter(adapter);
+                adapter.notifyDataSetChanged();
+            }
+        };
+        handler.post(updater);
     }
 
 
@@ -163,21 +195,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         this.recyclerView.setLayoutManager(layoutManager);
 
         ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
-        service.scheduleAtFixedRate(runnable, 0, 2, TimeUnit.SECONDS);
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                UpdateItem();
+            }
+        };
+
+        service.scheduleAtFixedRate(runnable, 0, 5, TimeUnit.SECONDS);
+
     }
 
-    private int checkValue = 0;
-
-    Runnable runnable = new Runnable() {
-        @Override
-        public void run() {
-            if (dataList.size() > 0) {
-                //dataList.remove(dataList.size() - 1);
-                //MyRecyclerAdapter adapter = new MyRecyclerAdapter(dataList);
-                //recyclerView.setAdapter(adapter);
-            }
-        }
-    };
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
@@ -354,6 +382,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             ad.show();
         });
 
+        //이륙고도 설정
         Button btnAltitude = (Button) findViewById(R.id.btnAlti);
         View.OnClickListener listeners = new View.OnClickListener() {
             @Override
@@ -382,6 +411,47 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         };
         btnAltitude.setOnClickListener(listeners);
+    }
+
+    public static double getDistance3D(LatLongAlt from, LatLongAlt to) {
+        if (from == null || to == null) {
+            return -1;
+        }
+
+        MathUtils.getDistance3D(from, to);
+
+        final double distance2d = getDistance2D(from, to);
+        double distanceSqr = Math.pow(distance2d, 2);
+        double altitudeSqr = Math.pow(to.getAltitude() - from.getAltitude(), 2);
+
+        return Math.sqrt(altitudeSqr + distanceSqr);
+
+    }
+
+    private static final double RADIUS_OF_EARTH_IN_METERS = 6378137.0;  // Source: WGS84
+    public static double getDistance2D(LatLong from, LatLong to) {
+        if (from == null || to == null) {
+            return -1;
+        }
+        //LatLong nextPoint = new LatLong(4.54717051, 1/109.958489129649955/1000*interval);
+        LatLong pointA = from;
+        LatLong pointB = to;
+        return RADIUS_OF_EARTH_IN_METERS * Math.toRadians(getArcInRadians(from, to));
+    }
+
+    public static LatLong addDistance(LatLong from, double xMeters, double yMeters) {
+        double lat = from.getLatitude();
+        double lon = from.getLongitude();
+
+        // Coordinate offsets in radians
+        double dLat = yMeters / RADIUS_OF_EARTH_IN_METERS;
+        double dLon = xMeters / (RADIUS_OF_EARTH_IN_METERS * Math.cos(Math.PI * lat / 180));
+
+        // OffsetPosition, decimal degrees
+        double latO = lat + dLat * 180 / Math.PI;
+        double lonO = lon + dLon * 180 / Math.PI;
+
+        return new LatLong(latO, lonO);
     }
 
     public void guidedMode(LatLng latLng) {

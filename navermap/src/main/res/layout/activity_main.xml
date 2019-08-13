@@ -31,7 +31,7 @@
                 android:layout_marginTop="30dp"
                 android:layout_marginEnd="500dp"
                 android:layout_marginRight="500dp"
-                android:layout_marginBottom="240dp"
+                android:layout_marginBottom="150dp"
                 android:background="@null"
                 tools:listitem="@layout/item_card" />
 
@@ -55,11 +55,20 @@
             android:text="@string/button_connect" />
 
         <Button
-            android:layout_width="wrap_content"
+            android:layout_width="50dp"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="40dp"
+            android:layout_marginLeft="85dp"
+            android:layout_gravity="bottom"
+            android:text="Up"
+            />
+
+        <Button
+            android:layout_width="50dp"
             android:layout_height="wrap_content"
             android:layout_marginBottom="40dp"
             android:layout_gravity="bottom"
-            />
+            android:layout_marginLeft="135dp"/>
 
         <Button
             android:id="@+id/btnARM"
