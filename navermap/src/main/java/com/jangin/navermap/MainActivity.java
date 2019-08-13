@@ -90,6 +90,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private Spinner modeSelector;
 
+    int takeoffAltitude = 0;
+
     final List<CardItem> dataList = new ArrayList<>();
 
     MyRecyclerAdapter adapter = new MyRecyclerAdapter(dataList);
@@ -187,7 +189,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
 
 
-
         locationSource =
                 new FusedLocationSource(this, LOCATION_PERMISSION_REQUEST_CODE);
         this.recyclerView = findViewById(R.id.recycler_view);
@@ -230,6 +231,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         naverMap.moveCamera(cameraUpdate);
         nMap = naverMap;
 
+
         final Button buttonLockMove = (Button) findViewById(R.id.mapLockMove);
         final Button buttonLock = (Button) findViewById(R.id.mapLock);
         final Button buttonMove = (Button) findViewById(R.id.mapMove);
@@ -240,6 +242,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         final Button buttonOnOff = (Button) findViewById(R.id.mapOnOff);
         final Button buttonmapOff = (Button) findViewById(R.id.mapOff);
         final Button buttonmapOn = (Button) findViewById(R.id.mapOn);
+        final Button btnAltitude = (Button) findViewById(R.id.btnAlti);
+        final Button buttonaltUp = (Button) findViewById(R.id.btnAltiUp);
+        final Button buttonaltDown = (Button) findViewById(R.id.btnAltiDown);
         final UiSettings uiSettings = naverMap.getUiSettings();
         View.OnClickListener listener = new View.OnClickListener() {
             @Override
@@ -339,6 +344,39 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         recyclerView("지적도가 켜졌습니다.");
                         naverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_CADASTRAL, true);
                         break;
+
+                    case R.id.btnAlti:
+                        if (buttonaltUp.getVisibility() == View.VISIBLE) {
+                            buttonaltUp.setVisibility(View.GONE);
+                            buttonaltDown.setVisibility(View.GONE);
+                        } else {
+                            buttonaltUp.setVisibility(View.VISIBLE);
+                            buttonaltDown.setVisibility(View.VISIBLE);
+                        }
+                        break;
+
+                    case R.id.btnAltiUp:
+                        if (takeoffAltitude < 15) {
+                            takeoffAltitude = takeoffAltitude + 3;
+                            btnAltitude.setText(takeoffAltitude + "m");
+                            recyclerView("이륙고도가" + takeoffAltitude + "M로 변경되었습니다.");
+                        }else if (takeoffAltitude == 0 ) {
+                        btnAltitude.setText("이륙고도");
+                        recyclerView("이륙고도를 설정해주세요");
+                    }
+
+                        break;
+
+                    case R.id.btnAltiDown:
+                        if (takeoffAltitude > 0) {
+                            takeoffAltitude = takeoffAltitude - 3;
+                            btnAltitude.setText(takeoffAltitude + "M");
+                            recyclerView("이륙고도가" + takeoffAltitude + "M로 변경되었습니다.");
+                        }else if (takeoffAltitude == 0 ) {
+                            btnAltitude.setText("이륙고도");
+                            recyclerView("이륙고도를 설정해주세요");
+                        }
+
                 }
             }
         };
@@ -352,6 +390,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         buttonOnOff.setOnClickListener(listener);
         buttonmapOff.setOnClickListener(listener);
         buttonmapOn.setOnClickListener(listener);
+        btnAltitude.setOnClickListener(listener);
+        buttonaltUp.setOnClickListener(listener);
+        buttonaltDown.setOnClickListener(listener);
 
 
         State vehicleState = this.drone.getAttribute(AttributeType.STATE);
@@ -381,77 +422,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             // 창 띄우기
             ad.show();
         });
-
-        //이륙고도 설정
-        Button btnAltitude = (Button) findViewById(R.id.btnAlti);
-        View.OnClickListener listeners = new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (btnAltitude.getText() == "이륙고도") {
-                    Log.d("myLog", "이륙고도3M");
-                    btnAltitude.setText("3M");
-                    recyclerView("이륙고도가 3M로 변경되었습니다.");
-                } else if (btnAltitude.getText() == "3M") {
-                    Log.d("myLog", "이륙고도5M");
-                    btnAltitude.setText("5M");
-                    recyclerView("이륙고도가 5M로 변경되었습니다.");
-                } else if (btnAltitude.getText() == "5M") {
-                    Log.d("myLog", "이륙고도M");
-                    btnAltitude.setText("8M");
-                    recyclerView("이륙고도가 8M로 변경되었습니다.");
-                } else if (btnAltitude.getText() == "8M") {
-                    Log.d("myLog", "이륙고도10M");
-                    btnAltitude.setText("10M");
-                    recyclerView("이륙고도가 10M로 변경되었습니다.");
-                } else {
-                    Log.d("myLog", "이륙고도");
-                    btnAltitude.setText("이륙고도");
-                    recyclerView("이륙고도가 0M로 변경되었습니다.");
-                }
-            }
-        };
-        btnAltitude.setOnClickListener(listeners);
-    }
-
-    public static double getDistance3D(LatLongAlt from, LatLongAlt to) {
-        if (from == null || to == null) {
-            return -1;
-        }
-
-        MathUtils.getDistance3D(from, to);
-
-        final double distance2d = getDistance2D(from, to);
-        double distanceSqr = Math.pow(distance2d, 2);
-        double altitudeSqr = Math.pow(to.getAltitude() - from.getAltitude(), 2);
-
-        return Math.sqrt(altitudeSqr + distanceSqr);
-
-    }
-
-    private static final double RADIUS_OF_EARTH_IN_METERS = 6378137.0;  // Source: WGS84
-    public static double getDistance2D(LatLong from, LatLong to) {
-        if (from == null || to == null) {
-            return -1;
-        }
-        //LatLong nextPoint = new LatLong(4.54717051, 1/109.958489129649955/1000*interval);
-        LatLong pointA = from;
-        LatLong pointB = to;
-        return RADIUS_OF_EARTH_IN_METERS * Math.toRadians(getArcInRadians(from, to));
-    }
-
-    public static LatLong addDistance(LatLong from, double xMeters, double yMeters) {
-        double lat = from.getLatitude();
-        double lon = from.getLongitude();
-
-        // Coordinate offsets in radians
-        double dLat = yMeters / RADIUS_OF_EARTH_IN_METERS;
-        double dLon = xMeters / (RADIUS_OF_EARTH_IN_METERS * Math.cos(Math.PI * lat / 180));
-
-        // OffsetPosition, decimal degrees
-        double latO = lat + dLat * 180 / Math.PI;
-        double lonO = lon + dLon * 180 / Math.PI;
-
-        return new LatLong(latO, lonO);
     }
 
     public void guidedMode(LatLng latLng) {
@@ -683,18 +653,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } else if (vehicleState.isArmed()) {
 
             int altitude = 0;
-            if (btnAltitude.getText() == "3M") {
+            if (takeoffAltitude == 3) {
                 altitude = 3;
                 Log.d("myLog", "고도3M");
-            } else if (btnAltitude.getText() == "고도5M") {
+            } else if (takeoffAltitude == 6) {
                 altitude = 5;
                 Log.d("myLog", "5M");
-            } else if (btnAltitude.getText() == "고도8M") {
+            } else if (takeoffAltitude == 9) {
                 altitude = 8;
                 Log.d("myLog", "8M");
-            } else if (btnAltitude.getText() == "고도10M") {
+            } else if (takeoffAltitude == 12) {
                 altitude = 10;
                 Log.d("myLog", "10M");
+            }
+            else if (takeoffAltitude == 15) {
+                altitude = 15;
+                Log.d("myLog", "15M");
             }
 
             // Take off
@@ -778,7 +752,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         if (angle < 0) {
             angle = (360 + angle);
         }
-        marker.setAngle((float)angle);
+        marker.setAngle((float) angle);
         marker.setMap(nMap);
         marker.setAnchor(new PointF(0.5f, 1));
 
