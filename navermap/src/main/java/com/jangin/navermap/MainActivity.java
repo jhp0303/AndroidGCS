@@ -6,15 +6,14 @@ import android.content.DialogInterface;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.graphics.PointF;
+import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.UiThread;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.text.style.UpdateAppearance;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -36,6 +35,7 @@ import com.naver.maps.map.OnMapReadyCallback;
 import com.naver.maps.map.UiSettings;
 import com.naver.maps.map.overlay.Marker;
 import com.naver.maps.map.overlay.OverlayImage;
+import com.naver.maps.map.overlay.PolygonOverlay;
 import com.naver.maps.map.overlay.PolylineOverlay;
 import com.naver.maps.map.util.FusedLocationSource;
 import com.o3dr.android.client.ControlTower;
@@ -61,14 +61,11 @@ import com.o3dr.services.android.lib.drone.property.VehicleMode;
 import com.o3dr.services.android.lib.gcs.link.LinkConnectionStatus;
 import com.o3dr.services.android.lib.model.AbstractCommandListener;
 import com.o3dr.services.android.lib.model.SimpleCommandListener;
-import com.o3dr.services.android.lib.util.MathUtils;
 
-
-import java.sql.Date;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -91,9 +88,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Spinner modeSelector;
 
     int takeoffAltitude = 0;
+    private static final double RADIUS_OF_EARTH_IN_METERS = 6378137.0;  // Source: WGS84
 
     final List<CardItem> dataList = new ArrayList<>();
-
     MyRecyclerAdapter adapter = new MyRecyclerAdapter(dataList);
 
     public void recyclerView(String b) {
@@ -204,9 +201,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         };
 
         service.scheduleAtFixedRate(runnable, 0, 5, TimeUnit.SECONDS);
-
     }
-
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
@@ -245,6 +240,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         final Button btnAltitude = (Button) findViewById(R.id.btnAlti);
         final Button buttonaltUp = (Button) findViewById(R.id.btnAltiUp);
         final Button buttonaltDown = (Button) findViewById(R.id.btnAltiDown);
+        final Button buttonMission = (Button) findViewById(R.id.missionSelect);
+        final Button btnBasicMission = (Button) findViewById(R.id.basicMission);
+        final Button btnIntervalMission = (Button) findViewById(R.id.intervalMission);
         final UiSettings uiSettings = naverMap.getUiSettings();
         View.OnClickListener listener = new View.OnClickListener() {
             @Override
@@ -360,10 +358,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             takeoffAltitude = takeoffAltitude + 3;
                             btnAltitude.setText(takeoffAltitude + "m");
                             recyclerView("이륙고도가" + takeoffAltitude + "M로 변경되었습니다.");
-                        }else if (takeoffAltitude == 0 ) {
-                        btnAltitude.setText("이륙고도");
-                        recyclerView("이륙고도를 설정해주세요");
-                    }
+                        } else if (takeoffAltitude == 0) {
+                            btnAltitude.setText("이륙고도");
+                            recyclerView("이륙고도를 설정해주세요");
+                        }
 
                         break;
 
@@ -372,11 +370,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             takeoffAltitude = takeoffAltitude - 3;
                             btnAltitude.setText(takeoffAltitude + "M");
                             recyclerView("이륙고도가" + takeoffAltitude + "M로 변경되었습니다.");
-                        }else if (takeoffAltitude == 0 ) {
+                        } else if (takeoffAltitude == 0) {
                             btnAltitude.setText("이륙고도");
                             recyclerView("이륙고도를 설정해주세요");
                         }
 
+                    case R.id.missionSelect:
+                        if (btnBasicMission.getVisibility() == View.VISIBLE) {
+                            btnBasicMission.setVisibility(View.GONE);
+                            btnIntervalMission.setVisibility(View.GONE);
+                        } else {
+                            btnBasicMission.setVisibility(View.VISIBLE);
+                            btnIntervalMission.setVisibility(View.VISIBLE);
+                        }
+                        break;
+
+                    case R.id.basicMission:
+                        if (btnIntervalMission.callOnClick()) {
+                            //TO DO
+                        }
+                        else {
+                            //TO DO
+                        }
                 }
             }
         };
@@ -393,8 +408,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         btnAltitude.setOnClickListener(listener);
         buttonaltUp.setOnClickListener(listener);
         buttonaltDown.setOnClickListener(listener);
+        buttonMission.setOnClickListener(listener);
+        btnBasicMission.setOnClickListener(listener);
+        btnIntervalMission.setOnClickListener(listener);
 
-
+        // 가이드 모드
         State vehicleState = this.drone.getAttribute(AttributeType.STATE);
         naverMap.setOnMapLongClickListener((coord, point) -> {
             AlertDialog.Builder ad = new AlertDialog.Builder(this);
@@ -416,12 +434,110 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 public void onClick(DialogInterface dialog, int which) {
                     dialog.dismiss();     //닫기
                     // Event
-                    Toast.makeText(getApplicationContext(), "You Click to No!!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "최소 하셨습니다.", Toast.LENGTH_SHORT).show();
                 }
             });
             // 창 띄우기
             ad.show();
         });
+
+
+        naverMap.setOnMapClickListener((point, coord) -> {
+            Marker markerA = new Marker();
+            Marker markerB = new Marker();
+            Marker markerC = new Marker();
+            Marker markerD = new Marker();
+            double interval = 5;
+            double distance = 40;
+
+            ArrayList<LatLng> markersLatLng = new ArrayList<>();
+            markersLatLng.add(new LatLng(coord.latitude, coord.longitude));
+
+            markerA.setPosition(markersLatLng.get(0));
+            markerB.setPosition(markersLatLng.get(1));
+
+//            if (!markerA.isAdded()) {
+//                markerA.setPosition(coord);
+//                markerA.setMap(naverMap);
+//            } else {
+//                markerB.setPosition(coord);
+//                markerB.setMap(naverMap);
+//            }
+
+            LatLong pointA = new LatLong(markerA.getPosition().latitude, markerA.getPosition().longitude);
+            LatLong pointB = new LatLong(markerB.getPosition().latitude, markerB.getPosition().longitude);
+
+            double pointDistance2D = getDistance2D(pointA, pointB);
+
+            if (markerA.getPosition().longitude == markerB.getPosition().longitude) {
+                LatLong newPointA = addDistance(pointA, distance, 0);
+                LatLng pointD = new LatLng(newPointA.getLatitude(), newPointA.getLongitude());
+                LatLong newPointB = addDistance(pointB, distance, 0);
+                LatLng pointC = new LatLng(newPointB.getLatitude(), newPointB.getLongitude());
+                markerC.setPosition(pointC);
+                markerD.setPosition(pointD);
+                PolylineOverlay polyline = new PolylineOverlay();
+                polyline.setCoords(Arrays.asList(
+                        markerA.getPosition(),
+                        markerB.getPosition(),
+                        markerC.getPosition(),
+                        markerD.getPosition()
+                ));
+                polyline.setMap(naverMap);
+            } else {
+                LatLong pointAlpha = new LatLong(markerA.getPosition().latitude, markerB.getPosition().longitude);
+                double pointDistanceAlpha = getDistance2D(pointB, pointAlpha);
+                double angleAlpha = Math.acos(pointDistance2D + pointDistanceAlpha);
+                double distanceX = distance * Math.cos(angleAlpha);
+                double distanceY = Math.sqrt((Math.pow(distanceX, 2)) + (Math.pow(distance, 2)));
+                LatLong newPointA = addDistance(pointA, distanceX, distanceY);
+                LatLong newPointB = addDistance(pointB, distanceX, distanceY);
+                LatLng pointD = new LatLng(newPointA.getLatitude(), newPointA.getLongitude());
+                LatLng pointC = new LatLng(newPointB.getLatitude(), newPointB.getLongitude());
+                markerC.setPosition(pointC);
+                markerD.setPosition(pointD);
+//                PolylineOverlay polyline = new PolylineOverlay();
+//                polyline.setCoords(Arrays.asList(
+//                        markerA.getPosition(),
+//                        markerB.getPosition(),
+//                        markerC.getPosition(),
+//                        markerD.getPosition()
+//                ));
+//                polyline.setMap(naverMap);
+                PolygonOverlay polygon = new PolygonOverlay();
+                polygon.setCoords(Arrays.asList(
+                        markerA.getPosition(),
+                        markerB.getPosition(),
+                        markerC.getPosition(),
+                        markerD.getPosition()
+                ));
+                polygon.setMap(naverMap);
+                polygon.setColor(Color.argb(100, 0, 216, 255));
+            }
+        });
+    }
+
+    public static LatLong addDistance(LatLong from, double xMeters, double yMeters) {
+        double lat = from.getLatitude();
+        double lon = from.getLongitude();
+
+        // Coordinate offsets in radians
+        double dLat = yMeters / RADIUS_OF_EARTH_IN_METERS;
+        double dLon = xMeters / (RADIUS_OF_EARTH_IN_METERS * Math.cos(Math.PI * lat / 180));
+
+        // OffsetPosition, decimal degrees
+        double latO = lat + dLat * 180 / Math.PI;
+        double lonO = lon + dLon * 180 / Math.PI;
+
+        return new LatLong(latO, lonO);
+    }
+
+    public static double getDistance2D(LatLong from, LatLong to) {
+        if (from == null || to == null) {
+            return -1;
+        }
+
+        return RADIUS_OF_EARTH_IN_METERS * Math.toRadians(getArcInRadians(from, to));
     }
 
     public void guidedMode(LatLng latLng) {
@@ -665,8 +781,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             } else if (takeoffAltitude == 12) {
                 altitude = 10;
                 Log.d("myLog", "10M");
-            }
-            else if (takeoffAltitude == 15) {
+            } else if (takeoffAltitude == 15) {
                 altitude = 15;
                 Log.d("myLog", "15M");
             }

@@ -24,8 +24,8 @@
 
             <android.support.v7.widget.RecyclerView
                 android:id="@+id/recycler_view"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_width="wrap_content"
+                android:layout_height="165dp"
                 android:layout_marginStart="0dp"
                 android:layout_marginLeft="0dp"
                 android:layout_marginTop="30dp"
@@ -38,8 +38,43 @@
         </LinearLayout>
 
         <Button
+            android:id="@+id/missionSelect"
+            android:layout_width="50dp"
+            android:layout_height="52dp"
+            android:layout_gravity="bottom"
+            android:layout_marginBottom="120dp"
+            android:textSize="10sp"
+            tools:ignore="SmallSp"
+            android:text="모드선택" />
+
+        <Button
+            android:id="@+id/basicMission"
+            android:layout_width="50dp"
+            android:layout_height="52dp"
+            android:layout_gravity="bottom"
+            android:layout_marginLeft="45dp"
+            android:layout_marginBottom="120dp"
+            android:textSize="10sp"
+            tools:ignore="SmallSp"
+            android:text="일반모드"
+            android:layout_marginStart="45dp" />
+
+        <Button
+            android:id="@+id/intervalMission"
+            android:layout_width="50dp"
+            android:layout_height="52dp"
+            android:layout_gravity="bottom"
+            android:layout_marginLeft="90dp"
+            android:layout_marginStart="90dp"
+            android:layout_marginBottom="120dp"
+            android:textSize="10sp"
+            tools:ignore="SmallSp"
+            android:text="간격감시"
+             />
+
+        <Button
             android:id="@+id/btnAlti"
-            android:layout_width="wrap_content"
+            android:layout_width="80dp"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom"
             android:layout_marginBottom="80dp"
@@ -59,12 +94,12 @@
             android:layout_width="50dp"
             android:layout_height="48dp"
             android:layout_marginBottom="80dp"
-            android:layout_marginLeft="85dp"
+            android:layout_marginLeft="75dp"
             android:layout_gravity="bottom"
             android:textStyle="bold"
-            android:textSize="20dp"
+            android:textSize="20sp"
             android:text="↑"
-            />
+            android:layout_marginStart="75dp" />
 
         <Button
             android:id="@+id/btnAltiDown"
@@ -72,10 +107,11 @@
             android:layout_height="48dp"
             android:layout_marginBottom="80dp"
             android:layout_gravity="bottom"
-            android:layout_marginLeft="135dp"
+            android:layout_marginLeft="120dp"
             android:textStyle="bold"
-            android:textSize="20dp"
-            android:text="↓"/>
+            android:textSize="20sp"
+            android:text="↓"
+            android:layout_marginStart="120dp" />
 
         <Button
             android:id="@+id/btnARM"
