@@ -36,6 +36,7 @@ import com.naver.maps.map.OnMapReadyCallback;
 import com.naver.maps.map.UiSettings;
 import com.naver.maps.map.overlay.Marker;
 import com.naver.maps.map.overlay.OverlayImage;
+import com.naver.maps.map.overlay.PathOverlay;
 import com.naver.maps.map.overlay.PolygonOverlay;
 import com.naver.maps.map.overlay.PolylineOverlay;
 import com.naver.maps.map.util.FusedLocationSource;
@@ -100,6 +101,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     final PolygonOverlay polygon = new PolygonOverlay();
     int interval = 5;
     int distance = 500;
+    ArrayList<LatLong> dList = new ArrayList<>();
+    ArrayList<LatLng> lineList = new ArrayList<>();
 
     public void recyclerView(String b) {
         RecyclerView recyclerView = findViewById(R.id.recycler_view);
@@ -502,67 +505,64 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     int count = 1;
     public void DrawRectangle() {
 
-        ArrayList<LatLong> pointClist = new ArrayList<>();
-        ArrayList<LatLong> pointDlist = new ArrayList<>();
-
         nMap.setOnMapClickListener((point, coord) -> {
-            ArrayList<LatLong> threelist = new ArrayList<>();
-            ArrayList<LatLong> fourlist = new ArrayList<>();
-           if (count== 1) {
-               markerA.setPosition(new LatLng(coord.latitude, coord.longitude));
-               markerA.setMap(nMap);
-               count += 1;
-           } else if (count == 2) {
-               markerB.setPosition(new LatLng(coord.latitude, coord.longitude));
-               markerB.setMap(nMap);
-               count -= 1;
-           }
-            LatLng positionA = markerA.getPosition();
-            LatLng positionB = markerB.getPosition();
-            LatLong posA = new LatLong(positionA.latitude, positionA.longitude);
-            LatLong posB = new LatLong(positionB.latitude, positionB.longitude);
-            listLat.add(posA);
-            listLat.add(posB);
+            if (count == 1) {
+                markerA.setPosition(new LatLng(coord.latitude, coord.longitude));
+                markerA.setMap(nMap);
+                count += 1;
 
-            double math = MathUtils.getDistance2D(posA,posB);
-            double angle = MathUtils.getHeadingFromCoordinates(posA,posB);
+                listLat.add(new LatLong(coord.latitude, coord.longitude));
+            } else if (count == 2) {
+                markerB.setPosition(new LatLng(coord.latitude, coord.longitude));
+                markerB.setMap(nMap);
+                count -= 1;
 
-            if(90<angle & angle<270){
-                angle -= 90;
-            }else {
-                angle += 90;
+                listLat.add(new LatLong(coord.latitude, coord.longitude));
             }
 
-            LatLong pointC = MathUtils.newCoordFromBearingAndDistance(posA,angle,distance);
-            LatLong pointD = MathUtils.newCoordFromBearingAndDistance(posB,angle,distance);
+            if (listLat.size() >= 2) {
+                double math = MathUtils.getDistance2D(listLat.get(0), listLat.get(1));
+                double angle = MathUtils.getHeadingFromCoordinates(listLat.get(0), listLat.get(1));
 
-            if(listLat.size()>=4) {
-                markerC.setPosition(new LatLng(pointC.getLatitude(), pointC.getLongitude()));
-                markerC.setMap(nMap);
-                markerD.setPosition(new LatLng(pointD.getLatitude(), pointD.getLongitude()));
-                markerD.setMap(nMap);
+                if (90 < angle & angle < 270) {
+                    angle -= 90;
+                } else {
+                    angle += 90;
+                }
+//                                LatLong Cpoint = MathUtils.newCoordFromBearingAndDistance(listLat.get(0),angle,dista);
+//                                LatLong Dpoint = MathUtils.newCoordFromBearingAndDistance(listLat.get(1),angle,dista);
+
                 intervalList = new ArrayList<>();
                 int i = 1;
                 while ((interval * i) < distance) {
                     intervalList.add(interval * i);
                     i += 1;
                 }
-//                for (int num : intervalList) {
-//                    Marker marker1 = new Marker();
-//                    Marker marker6 = new Marker();
-//                    LatLong pointC_2 = MathUtils.newCoordFromBearingAndDistance(posA, angle, num);
-//                    LatLong pointD_2 = MathUtils.newCoordFromBearingAndDistance(posB, angle, num);
-//                    pointClist.add(pointC_2);
-//                    pointDlist.add(pointD_2);
-//                    marker1.setPosition(new LatLng(pointC_2.getLatitude(), pointC_2.getLongitude()));
-//                    marker1.setMap(nMap);
-//                    marker6.setPosition(new LatLng(pointD_2.getLatitude(), pointD_2.getLongitude()));
-//                    marker6.setMap(nMap);
-//                }
-
+                for (int num : intervalList) {
+                    LatLong Cpoint_1 = MathUtils.newCoordFromBearingAndDistance(listLat.get(1), angle, num);
+                    LatLong Dpoint_1 = MathUtils.newCoordFromBearingAndDistance(listLat.get(0), angle, num);
+                    dList.add(Dpoint_1);
+                    if (dList.size() == 2) {
+                        listLat.add(dList.get(0));
+                        listLat.add(dList.get(1));
+                        dList.remove(1);
+                        dList.remove(0);
+                    }
+                    listLat.add(Cpoint_1);
+                }
+                for (LatLong num : listLat){
+                    lineList.add(new LatLng(num.getLatitude(),num.getLongitude()));
+                }
+                PathOverlay path = new PathOverlay();
+                path.setCoords(
+                        lineList
+                );
+                path.setMap(nMap);
+                list.add(Double.toString(math));
+                list.add(Double.toString(angle));
+                adapter.notifyDataSetChanged();
+                recyclerView.scrollToPosition(list.size()-1);
             }
-            list.add(Double.toString(math));
-            list.add(Double.toString(angle));
         });
     }
 
