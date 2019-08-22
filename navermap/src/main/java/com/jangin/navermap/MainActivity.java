@@ -85,7 +85,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private int droneType = Type.TYPE_UNKNOWN;
     private ControlTower controlTower;
     private final Handler handler = new Handler();
-    private NaverMap nMap;
+    private NaverMap naverMap;
     private RecyclerView recyclerView;
     private Spinner modeSelector;
     int takeoffAltitude = 0;
@@ -94,83 +94,34 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     final List<CardItem> dataList = new ArrayList<>();
     MyRecyclerAdapter adapter = new MyRecyclerAdapter(dataList);
 
-    private ArrayList<String>list;
-    private ArrayList<LatLong>listLat;
-    private ArrayList<Integer>intervalList;
+    private ArrayList<LatLong>listLat = new ArrayList<>();
+    List<LatLng> Automode_Polyline = new ArrayList<>(); //간격감시 폴리라인
+    List<Marker> Automode_Marker = new ArrayList<>();   //감격감시 마커
     final PolylineOverlay polyline = new PolylineOverlay();
     final PolygonOverlay polygon = new PolygonOverlay();
-    int interval = 5;
-    int distance = 500;
-    ArrayList<LatLong> dList = new ArrayList<>();
-    ArrayList<LatLng> lineList = new ArrayList<>();
-
-    public void recyclerView(String b) {
-        RecyclerView recyclerView = findViewById(R.id.recycler_view);
-        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
-        recyclerView.setLayoutManager(layoutManager);
-        final Runnable r = new Runnable() {
-            public void run() {
-                adapter.notifyDataSetChanged();
-            }
-        };
-        handler.post(r);
-        dataList.add(0, new CardItem(b));
-        if (dataList.size() > 3) {
-            for (int i = 4; i <= dataList.size(); i++) {
-                dataList.remove(dataList.size() - 1);
-                recyclerView.setAdapter(adapter);
-            }
-        }
+    Marker GuidedMarker = new Marker();
+    private int Automode_Marker_Count = 0;
+    public int Automode_Distance = 50;
+    private int interval_Count = 0;
+    public int interval_Distance = 5;
+    LatLng[] interval_LatLng = new LatLng[4]; // 감격감시 폴리곤
+    PolylineOverlay polylinePath = new PolylineOverlay();
 
 
-        recyclerView.setAdapter(adapter);
-        recyclerView.stopScroll();
-        recyclerView.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
-            @Override
-            public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
-                return true;
-            }
-
-            @Override
-            public void onTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
-            }
-
-            @Override
-            public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {
-            }
-        });
-    }
-
-    protected void UpdateItem() {
-        Runnable updater = new Runnable() {
-
-            @Override
-            public void run() {
-                if (dataList.size() > 0) {
-                    dataList.remove(dataList.size() - 1);
-                    Log.d("myLog", "하나 삭제");
-                } else {
-                    Log.d("myLog", "아무것도 없음");
-                }
-                recyclerView.setAdapter(adapter);
-                adapter.notifyDataSetChanged();
-            }
-        };
-        handler.post(updater);
-    }
-
+    protected double mRecentAltitude = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.i(TAG, "Start mainActivity");
         super.onCreate(savedInstanceState);
+        // 전체화면 모드
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_main);
         this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LOCKED);
 
-        listLat = new ArrayList<>();
-        list = new ArrayList<>();
+
+
 
         Log.d("myLog", "테스트 결과입니다.");
 
@@ -236,16 +187,58 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @UiThread
     @Override
     public void onMapReady(@NonNull final NaverMap naverMap) {
+        this.naverMap = naverMap;
+
+        // 켜지자마자 드론 연결
+//        ConnectionParameter params = ConnectionParameter.newUdpConnection(null);
+//        this.drone.connect(params);
+
+        // 맵 타입 설정
         naverMap.setMapType(NaverMap.MapType.Hybrid);
+
+        // 내 위치
         naverMap.setLocationSource(locationSource);
         naverMap.setLocationTrackingMode(LocationTrackingMode.Follow);
 
+        // 카메라 초기위치 설정
         CameraPosition cameraPosition = naverMap.getCameraPosition();
         CameraUpdate cameraUpdate = CameraUpdate.toCameraPosition(cameraPosition);
         naverMap.moveCamera(cameraUpdate);
-        nMap = naverMap;
 
+        // 버튼 목록
+        GuiButton();
 
+        // 가이드 모드
+        State vehicleState = this.drone.getAttribute(AttributeType.STATE);
+        naverMap.setOnMapLongClickListener((coord, point) -> {
+            AlertDialog.Builder ad = new AlertDialog.Builder(this);
+            ad.setTitle("알림");       // 제목 설정
+            ad.setMessage("해당 좌표로 이동합니다.");   // 내용 설정
+            // 확인 버튼 설정
+            ad.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();     //닫기
+                    // Event
+                    guidedMode(point);
+                    recyclerView("드론이 해당 좌표로 이동 중입니다.");
+                }
+            });
+            // 취소 버튼 설정
+            ad.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();     //닫기
+                    // Event
+                    Toast.makeText(getApplicationContext(), "최소 하셨습니다.", Toast.LENGTH_SHORT).show();
+                }
+            });
+            // 창 띄우기
+            ad.show();
+        });
+    }
+
+    private void GuiButton() {
         final Button buttonLockMove = (Button) findViewById(R.id.mapLockMove);
         final Button buttonLock = (Button) findViewById(R.id.mapLock);
         final Button buttonMove = (Button) findViewById(R.id.mapMove);
@@ -435,14 +428,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         break;
 
                     case R.id.distanceUp:
-                        distance += 1;
-                        btndistance.setText("거리:" + distance + "m");
+                        Automode_Distance += 1;
+                        btndistance.setText("거리:" + Automode_Distance + "m");
                         //String setdistance = edSetDistance.getText().toString();
                         //distance = Integer.parseInt(setdistance);
                         break;
                     case R.id.distanceDown:
-                        distance -= 1;
-                        btndistance.setText("거리:" + distance + "m");
+                        Automode_Distance -= 1;
+                        btndistance.setText("거리:" + Automode_Distance + "m");
                         //String setinterval = edSetInterval.getText().toString();
                         //interval = Integer.parseInt(setinterval);
 
@@ -469,72 +462,132 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         btndistance.setOnClickListener(listener);
         btndistanceUp.setOnClickListener(listener);
         btndistanceDown.setOnClickListener(listener);
-
-        // 가이드 모드
-        State vehicleState = this.drone.getAttribute(AttributeType.STATE);
-        naverMap.setOnMapLongClickListener((coord, point) -> {
-            AlertDialog.Builder ad = new AlertDialog.Builder(this);
-            ad.setTitle("알림");       // 제목 설정
-            ad.setMessage("해당 좌표로 이동합니다.");   // 내용 설정
-            // 확인 버튼 설정
-            ad.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    dialog.dismiss();     //닫기
-                    // Event
-                    guidedMode(point);
-                    recyclerView("드론이 해당 좌표로 이동 중입니다.");
-                }
-            });
-            // 취소 버튼 설정
-            ad.setNegativeButton("No", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    dialog.dismiss();     //닫기
-                    // Event
-                    Toast.makeText(getApplicationContext(), "최소 하셨습니다.", Toast.LENGTH_SHORT).show();
-                }
-            });
-            // 창 띄우기
-            ad.show();
-        });
-
-
     }
 
-    int count = 1;
-    public void DrawRectangle() {
+    // 리사이클러 뷰
+    public void recyclerView(String b) {
+        RecyclerView recyclerView = findViewById(R.id.recycler_view);
+        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(this);
+        recyclerView.setLayoutManager(layoutManager);
+        final Runnable r = new Runnable() {
+            public void run() {
+                adapter.notifyDataSetChanged();
+            }
+        };
+        handler.post(r);
+        dataList.add(0, new CardItem(b));
+        // 아이템이 3개가 초과하면 삭제하게 설정
+        if (dataList.size() > 3) {
+            for (int i = 4; i <= dataList.size(); i++) {
+                dataList.remove(dataList.size() - 1);
+                recyclerView.setAdapter(adapter);
+            }
+        }
 
-        nMap.setOnMapClickListener((point, coord) -> {
-            if (count == 1) {
-                markerA.setPosition(new LatLng(coord.latitude, coord.longitude));
-                markerA.setMap(nMap);
-                count += 1;
 
-                listLat.add(new LatLong(coord.latitude, coord.longitude));
-            } else if (count == 2) {
-                markerB.setPosition(new LatLng(coord.latitude, coord.longitude));
-                markerB.setMap(nMap);
-                count -= 1;
-
-                listLat.add(new LatLong(coord.latitude, coord.longitude));
+        recyclerView.setAdapter(adapter);
+        recyclerView.stopScroll();
+        recyclerView.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
+            @Override
+            public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+                return true;
             }
 
+            @Override
+            public void onTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+            }
+
+            @Override
+            public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {
+            }
+        });
+    }
+    // 리사이클러 뷰 관리
+    protected void UpdateItem() {
+        Runnable updater = new Runnable() {
+
+            @Override
+            public void run() {
+                if (dataList.size() > 0) {
+                    dataList.remove(dataList.size() - 1);
+                    Log.d("myLog", "하나 삭제");
+                } else {
+                    Log.d("myLog", "아무것도 없음");
+                }
+                recyclerView.setAdapter(adapter);
+                adapter.notifyDataSetChanged();
+            }
+        };
+        handler.post(updater);
+    }
+
+    public void DrawRectangle() {
+        alertUser("A와 B좌표를 클릭하세요");
+        naverMap.setOnMapClickListener((point, coord) -> {
+            if (interval_Count < 2) {
+                Marker marker = new Marker();
+                marker.setPosition(coord);
+                interval_LatLng[interval_Count] = coord;
+
+                // Automode_Marker에 넣기 위해 marker 생성
+                Automode_Marker.add(marker);
+                Automode_Marker.get(Automode_Marker_Count).setMap(naverMap);
+
+                if (interval_Count == 0) {
+                    Automode_Marker.get(0).setIcon(OverlayImage.fromResource(R.drawable.level_1));
+                    Automode_Marker.get(0).setWidth(80);
+                    Automode_Marker.get(0).setHeight(80);
+                    Automode_Marker.get(0).setAnchor(new PointF(0.5F, 0.5F));
+                } else if (interval_Count == 1) {
+                    Automode_Marker.get(1).setIcon(OverlayImage.fromResource(R.drawable.level_2));
+                    Automode_Marker.get(1).setWidth(80);
+                    Automode_Marker.get(1).setHeight(80);
+                    Automode_Marker.get(1).setAnchor(new PointF(0.5F, 0.5F));
+                }
+                interval_Count++;
+                Automode_Marker_Count++;
+            }
+            if (Automode_Marker_Count == 2) {
+                LatLong level_1_Marker_Position = new LatLong(Automode_Marker.get(0).getPosition().latitude, Automode_Marker.get(0).getPosition().longitude);
+                LatLong level_2_Marker_Position = new LatLong(Automode_Marker.get(1).getPosition().latitude, Automode_Marker.get(1).getPosition().longitude);
+                double head_Angle = MathUtils.getHeadingFromCoordinates(level_1_Marker_Position, level_2_Marker_Position);
+                /* 앵글값 고려
+                if (90 < head_Angle & head_Angle < 270) {
+                    head_Angle -= 90;
+                } else {
+                    head_Angle += 90;
+                }
+                */
+                LatLong latLong1 = MathUtils.newCoordFromBearingAndDistance(level_1_Marker_Position, head_Angle, Automode_Distance);
+                LatLong latLong2 = MathUtils.newCoordFromBearingAndDistance(level_2_Marker_Position, head_Angle, Automode_Distance);
+                // LatLong 을 latlng로 변환
+                LatLng latLng1 = new LatLng(latLong1.getLatitude(), latLong1.getLongitude());
+                LatLng latLng2 = new LatLng(latLong2.getLatitude(), latLong2.getLongitude());
+
+                interval_LatLng[2] = latLng1;
+                interval_LatLng[3] = latLng2;
+                polygon.setCoords(Arrays.asList(
+                        new LatLng(interval_LatLng[0].latitude, interval_LatLng[0].longitude),
+                        new LatLng(interval_LatLng[1].latitude, interval_LatLng[1].longitude),
+                        new LatLng(interval_LatLng[2].latitude, interval_LatLng[2].longitude),
+                        new LatLng(interval_LatLng[3].latitude, interval_LatLng[3].longitude)
+                ));
+                int colorTransparentCyan = getResources().getColor(R.color.colorTransparentCyan);
+                polygon.setColor(colorTransparentCyan);
+                polygon.setMap(naverMap);
+            }
+/*
             if (listLat.size() >= 2) {
                 double math = MathUtils.getDistance2D(listLat.get(0), listLat.get(1));
                 double angle = MathUtils.getHeadingFromCoordinates(listLat.get(0), listLat.get(1));
 
-                if (90 < angle & angle < 270) {
-                    angle -= 90;
-                } else {
-                    angle += 90;
-                }
+
 //                                LatLong Cpoint = MathUtils.newCoordFromBearingAndDistance(listLat.get(0),angle,dista);
 //                                LatLong Dpoint = MathUtils.newCoordFromBearingAndDistance(listLat.get(1),angle,dista);
 
                 intervalList = new ArrayList<>();
                 int i = 1;
-                while ((interval * i) < distance) {
+                while ((interval * i) < Automode_Distance) {
                     intervalList.add(interval * i);
                     i += 1;
                 }
@@ -557,27 +610,54 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 path.setCoords(
                         lineList
                 );
-                path.setMap(nMap);
+                path.setMap(naverMap);
                 list.add(Double.toString(math));
                 list.add(Double.toString(angle));
                 adapter.notifyDataSetChanged();
                 recyclerView.scrollToPosition(list.size()-1);
             }
+            */
+
+            //MakePath();
         });
     }
 
-    public void guidedMode(LatLng latLng) {
-        LatLng nowLatLng = new LatLng(latLng.latitude, latLng.longitude);
-        LatLong nowLatLong = new LatLong(latLng.latitude, latLng.longitude);
-        VehicleApi.getApi(this.drone).setVehicleMode((VehicleMode.COPTER_GUIDED));
-        Marker nowmarker = new Marker();
-        ArrayList<LatLng> nowMarkersLatLng = new ArrayList<>();
-        nowMarkersLatLng.add(nowLatLng);
-        nowmarker.setPosition(nowLatLng);
-        nowmarker.setIcon(OverlayImage.fromResource(R.drawable.marker_24));
-        nowmarker.setMap(nMap);
+    private void MakePath() {
+        LatLong level_1_Marker_Position = new LatLong(Automode_Marker.get(0).getPosition().latitude, Automode_Marker.get(0).getPosition().longitude);
+        LatLong level_2_Marker_Position = new LatLong(Automode_Marker.get(1).getPosition().latitude, Automode_Marker.get(1).getPosition().longitude);
+        double head_Angle = MathUtils.getHeadingFromCoordinates(level_1_Marker_Position, level_2_Marker_Position);
 
-        ControlApi.getApi(this.drone).goTo(nowLatLong, true, new AbstractCommandListener() {
+        Automode_Polyline.add(new LatLng(Automode_Marker.get(0).getPosition().latitude, Automode_Marker.get(0).getPosition().longitude));
+        Automode_Polyline.add(new LatLng(Automode_Marker.get(1).getPosition().latitude, Automode_Marker.get(1).getPosition().longitude));
+
+        for(int sum = interval_Distance; sum + interval_Distance <= Automode_Distance + interval_Distance; sum = sum + interval_Distance)
+        {
+            LatLong latLong1 = MathUtils.newCoordFromBearingAndDistance(level_1_Marker_Position, head_Angle, Automode_Distance);
+            LatLong latLong2 = MathUtils.newCoordFromBearingAndDistance(level_2_Marker_Position, head_Angle, Automode_Distance);
+            // LatLong 을 latlng로 변환
+            LatLng latLng1 = new LatLng(latLong2.getLatitude(), latLong1.getLongitude());
+            LatLng latLng2 = new LatLng(latLong1.getLatitude(), latLong2.getLongitude());
+            Automode_Marker.add(new Marker(latLng1));
+            Automode_Marker.add(new Marker(latLng2));
+            Automode_Marker_Count += 2;
+//            Auto_Marker.get(Auto_Marker_Count-2).getPosition();
+            Automode_Polyline.add(new LatLng(Automode_Marker.get(Automode_Marker_Count-2).getPosition().latitude,Automode_Marker.get(Automode_Marker_Count-2).getPosition().longitude));
+            Automode_Polyline.add(new LatLng(Automode_Marker.get(Automode_Marker_Count-1).getPosition().latitude,Automode_Marker.get(Automode_Marker_Count-1).getPosition().longitude));
+        }
+        polylinePath.setColor(Color.WHITE);
+        polylinePath.setCoords(Automode_Polyline);
+        polylinePath.setMap(naverMap);
+    }
+
+    public void guidedMode(LatLng latLng) {
+        LatLng GuidePointLatLng = new LatLng(latLng.latitude, latLng.longitude);
+        LatLong GuidePointLatLong = new LatLong(latLng.latitude, latLng.longitude);
+        VehicleApi.getApi(this.drone).setVehicleMode((VehicleMode.COPTER_GUIDED));
+        GuidedMarker.setPosition(GuidePointLatLng);
+        GuidedMarker.setIcon(OverlayImage.fromResource(R.drawable.marker_24));
+        GuidedMarker.setMap(naverMap);
+
+        ControlApi.getApi(this.drone).goTo(GuidePointLatLong, true, new AbstractCommandListener() {
             @Override
             public void onSuccess() {
                 alertUser("해당 좌표로 이동합니다.");
@@ -883,7 +963,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         LatLong vehiclePosition = droneGps.getPosition();
         LatLng LatLng = new LatLng(vehiclePosition.getLatitude(), vehiclePosition.getLongitude());
         CameraUpdate cameraUpdate = CameraUpdate.scrollTo(LatLng);
-        nMap.moveCamera(cameraUpdate);
+        naverMap.moveCamera(cameraUpdate);
         marker.setMap(null);
         marker.setPosition(LatLng);
         marker.setIcon(OverlayImage.fromResource(R.drawable.triangle_long));
@@ -893,7 +973,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             angle = (360 + angle);
         }
         marker.setAngle((float) angle);
-        marker.setMap(nMap);
+        marker.setMap(naverMap);
         marker.setAnchor(new PointF(0.5f, 1));
 
         markersLatLng.add(LatLng);
@@ -901,7 +981,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         polyline.setCoords(markersLatLng);
         polyline.setColor(Color.rgb(0, 216, 255));
         polyline.setWidth(15);
-        polyline.setMap(nMap);
+        polyline.setMap(naverMap);
     }
 
     public void clearButton(View v) {
@@ -917,9 +997,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     protected void updateAltitude() {
+        Altitude currentAltitude = this.drone.getAttribute(AttributeType.ALTITUDE);
+        mRecentAltitude = currentAltitude.getRelativeAltitude();
+        int newIntAltitude = (int) Math.round(mRecentAltitude);
+
         Button altitudeTextView = (Button) findViewById(R.id.altitude);
         Altitude droneAltitude = this.drone.getAttribute(AttributeType.ALTITUDE);
-        altitudeTextView.setText(String.format("고도 :" + "%3.1f", droneAltitude.getAltitude()) + "m");
+        altitudeTextView.setText(String.format("고도 :" + "%3.1f", newIntAltitude + "m"));
         double vehicleAltitude = droneAltitude.getAltitude();
 
         String tmp = Double.toString(droneAltitude.getAltitude());
