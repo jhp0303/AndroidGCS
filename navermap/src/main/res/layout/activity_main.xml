@@ -73,48 +73,43 @@
              />
 
         <Button
-            android:id="@+id/distance"
-            android:layout_width="50dp"
-            android:layout_height="52dp"
-            android:layout_gravity="bottom"
-            android:layout_marginLeft="90dp"
-            android:layout_marginBottom="165dp"
-            android:layout_marginStart="90dp"
-            android:textSize="10sp"
-            android:text="거리설정"
-            tools:ignore="SmallSp" />
-
-        <Button
-            android:id="@+id/distanceUp"
-            android:layout_width="50dp"
-            android:layout_height="52dp"
-            android:layout_marginTop="150dp"
-            android:layout_marginLeft="45dp"
-            android:textStyle="bold"
-            android:textSize="20sp"
-            android:text="↑"
-            android:layout_marginStart="45dp" />
-
-        <Button
-            android:id="@+id/distanceDown"
-            android:layout_width="50dp"
-            android:layout_height="52dp"
-            android:layout_marginTop="150dp"
-            android:layout_marginLeft="90dp"
-            android:textStyle="bold"
-            android:textSize="20sp"
-            android:text="↓"
-            android:layout_marginStart="90dp" />
-
-        <Button
-            android:id="@+id/interval"
+            android:id="@+id/startMission"
             android:layout_width="50dp"
             android:layout_height="52dp"
             android:layout_gravity="bottom"
             android:layout_marginLeft="135dp"
-            android:layout_marginBottom="165dp"
+            android:layout_marginStart="135dp"
+            android:layout_marginBottom="120dp"
             android:textSize="10sp"
-            android:text="간격설정"/>
+            tools:ignore="SmallSp"
+            android:text="임무시작" />
+
+        <EditText
+            android:id="@+id/distance"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_gravity="bottom"
+            android:layout_marginLeft="94dp"
+            android:layout_marginBottom="170dp"
+            android:textSize="10sp"
+            android:hint="거리설정"
+            android:gravity="center"
+            tools:ignore="SmallSp"
+            android:inputType="number"
+            android:background="#D5D5D5"/>
+
+        <EditText
+            android:id="@+id/interval"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_gravity="bottom"
+            android:layout_marginLeft="140dp"
+            android:layout_marginBottom="170dp"
+            android:textSize="10sp"
+            android:hint="간격설정"
+            android:gravity="center"
+            android:inputType="number"
+            android:background="#D5D5D5"/>
 
         <Button
             android:id="@+id/btnAlti"

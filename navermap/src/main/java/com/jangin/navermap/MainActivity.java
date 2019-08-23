@@ -14,6 +14,8 @@ import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -23,6 +25,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.mygcs.R;
@@ -52,6 +55,7 @@ import com.o3dr.services.android.lib.coordinate.LatLongAlt;
 import com.o3dr.services.android.lib.drone.attribute.AttributeEvent;
 import com.o3dr.services.android.lib.drone.attribute.AttributeType;
 import com.o3dr.services.android.lib.drone.connection.ConnectionParameter;
+import com.o3dr.services.android.lib.drone.mission.Mission;
 import com.o3dr.services.android.lib.drone.property.Altitude;
 import com.o3dr.services.android.lib.drone.property.Attitude;
 import com.o3dr.services.android.lib.drone.property.Battery;
@@ -63,7 +67,10 @@ import com.o3dr.services.android.lib.drone.property.VehicleMode;
 import com.o3dr.services.android.lib.gcs.link.LinkConnectionStatus;
 import com.o3dr.services.android.lib.model.AbstractCommandListener;
 import com.o3dr.services.android.lib.model.SimpleCommandListener;
+import com.o3dr.services.android.lib.model.action.Action;
 import com.o3dr.services.android.lib.util.MathUtils;
+
+import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -73,6 +80,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static com.o3dr.services.android.lib.drone.mission.action.MissionActions.ACTION_SET_MISSION;
+import static com.o3dr.services.android.lib.drone.mission.action.MissionActions.EXTRA_MISSION;
+import static com.o3dr.services.android.lib.drone.mission.action.MissionActions.EXTRA_PUSH_TO_DRONE;
 import static com.o3dr.services.android.lib.util.MathUtils.getArcInRadians;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, DroneListener, TowerListener, LinkListener {
@@ -94,18 +104,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     final List<CardItem> dataList = new ArrayList<>();
     MyRecyclerAdapter adapter = new MyRecyclerAdapter(dataList);
 
-    private ArrayList<LatLong>listLat = new ArrayList<>();
-    List<LatLng> Automode_Polyline = new ArrayList<>(); //간격감시 폴리라인
-    List<Marker> Automode_Marker = new ArrayList<>();   //감격감시 마커
+    private ArrayList<LatLong>latList = new ArrayList<>();
     final PolylineOverlay polyline = new PolylineOverlay();
-    final PolygonOverlay polygon = new PolygonOverlay();
     Marker GuidedMarker = new Marker();
-    private int Automode_Marker_Count = 0;
-    public int Automode_Distance = 50;
-    private int interval_Count = 0;
-    public int interval_Distance = 5;
-    LatLng[] interval_LatLng = new LatLng[4]; // 감격감시 폴리곤
-    PolylineOverlay polylinePath = new PolylineOverlay();
+    private int Automode_Distance = 0;
+    private int count = 1;
+    int missionStatus = 1; // 1 = 오토모드, 2 = 로이터모드
+    private int interval_Distance = 0;
+    private ArrayList<Integer>intervalList = new ArrayList<>();
+    ArrayList<LatLong> D_List = new ArrayList<>();
+    ArrayList<LatLng> pathList = new ArrayList<>();
+    PolygonOverlay polygonOverlay = new PolygonOverlay();
+    PathOverlay path = new PathOverlay();
+    Marker markerA = new Marker();
+    Marker markerB = new Marker();
+    Marker markerC = new Marker();
+    Marker markerD = new Marker();
 
 
     protected double mRecentAltitude = 0;
@@ -179,11 +193,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 requestCode, permissions, grantResults);
     }
 
-    Marker markerA = new Marker();
-    Marker markerB = new Marker();
-    Marker markerC = new Marker();
-    Marker markerD = new Marker();
-
     @UiThread
     @Override
     public void onMapReady(@NonNull final NaverMap naverMap) {
@@ -255,12 +264,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         final Button buttonMission = (Button) findViewById(R.id.missionSelect);
         final Button btnBasicMission = (Button) findViewById(R.id.basicMission);
         final Button btnIntervalMission = (Button) findViewById(R.id.intervalMission);
-        final Button btnInterval = (Button) findViewById(R.id.interval);
-        final Button btndistance = (Button) findViewById(R.id.distance);
-        final Button btndistanceUp = (Button) findViewById(R.id.distanceUp);
-        final Button btndistanceDown = (Button) findViewById(R.id.distanceDown);
-        //final EditText edSetDistance = (EditText) findViewById(R.id.setDistance);
-        //final EditText edSetInterval = (EditText) findViewById(R.id.setInterval);
+        final EditText btnInterval = (EditText) findViewById(R.id.interval);
+        final EditText btndistance = (EditText) findViewById(R.id.distance);
+        final Button btnStartMission = (Button) findViewById(R.id.startMission);
         final UiSettings uiSettings = naverMap.getUiSettings();
         View.OnClickListener listener = new View.OnClickListener() {
             @Override
@@ -403,41 +409,34 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         break;
 
                     case R.id.intervalMission:
+                        String distance = btndistance.getText().toString();
+                        Automode_Distance = Integer.parseInt(distance);
+                        String interval = btnInterval.getText().toString();
+                        interval_Distance = Integer.parseInt(interval);
                         DrawRectangle();
                         if (btndistance.getVisibility() == View.VISIBLE) {
                             btndistance.setVisibility(View.GONE);
                             btnInterval.setVisibility(View.GONE);
-                            btndistanceUp.setVisibility(View.GONE);
-                            btndistanceDown.setVisibility(View.GONE);
                         } else {
                             btndistance.setVisibility(View.VISIBLE);
                             btnInterval.setVisibility(View.VISIBLE);
-                            btndistanceUp.setVisibility(View.VISIBLE);
-                            btndistanceDown.setVisibility(View.VISIBLE);
                         }
+
                         break;
 
                     case R.id.distance:
-                        if (btndistanceUp.getVisibility() == View.VISIBLE) {
-                            btndistanceUp.setVisibility(View.GONE);
-                            btndistanceDown.setVisibility(View.GONE);
-                        } else {
-                            btndistanceUp.setVisibility(View.VISIBLE);
-                            btndistanceDown.setVisibility(View.VISIBLE);
-                        }
+                        //String distance = btndistance.getText().toString();
+                        //Automode_Distance = Integer.parseInt(distance);
                         break;
 
-                    case R.id.distanceUp:
-                        Automode_Distance += 1;
-                        btndistance.setText("거리:" + Automode_Distance + "m");
-                        //String setdistance = edSetDistance.getText().toString();
-                        //distance = Integer.parseInt(setdistance);
+                    case R.id.interval:
+                        //String interval = btnInterval.getText().toString();
+                        //interval_Distance = Integer.parseInt(interval);
                         break;
-                    case R.id.distanceDown:
-                        Automode_Distance -= 1;
-                        btndistance.setText("거리:" + Automode_Distance + "m");
-                        //String setinterval = edSetInterval.getText().toString();
-                        //interval = Integer.parseInt(setinterval);
+
+                    case R.id.startMission:
+
+                        break;
 
                 }
             }
@@ -460,8 +459,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         btnIntervalMission.setOnClickListener(listener);
         btnInterval.setOnClickListener(listener);
         btndistance.setOnClickListener(listener);
-        btndistanceUp.setOnClickListener(listener);
-        btndistanceDown.setOnClickListener(listener);
+        btnStartMission.setOnClickListener(listener);
     }
 
     // 리사이클러 뷰
@@ -524,132 +522,77 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void DrawRectangle() {
         alertUser("A와 B좌표를 클릭하세요");
         naverMap.setOnMapClickListener((point, coord) -> {
-            if (interval_Count < 2) {
-                Marker marker = new Marker();
-                marker.setPosition(coord);
-                interval_LatLng[interval_Count] = coord;
-
-                // Automode_Marker에 넣기 위해 marker 생성
-                Automode_Marker.add(marker);
-                Automode_Marker.get(Automode_Marker_Count).setMap(naverMap);
-
-                if (interval_Count == 0) {
-                    Automode_Marker.get(0).setIcon(OverlayImage.fromResource(R.drawable.level_1));
-                    Automode_Marker.get(0).setWidth(80);
-                    Automode_Marker.get(0).setHeight(80);
-                    Automode_Marker.get(0).setAnchor(new PointF(0.5F, 0.5F));
-                } else if (interval_Count == 1) {
-                    Automode_Marker.get(1).setIcon(OverlayImage.fromResource(R.drawable.level_2));
-                    Automode_Marker.get(1).setWidth(80);
-                    Automode_Marker.get(1).setHeight(80);
-                    Automode_Marker.get(1).setAnchor(new PointF(0.5F, 0.5F));
-                }
-                interval_Count++;
-                Automode_Marker_Count++;
+            if (count == 1) {
+                markerA.setPosition(new LatLng(coord.latitude, coord.longitude));
+                markerA.setMap(naverMap);
+                markerA.setIcon(OverlayImage.fromResource(R.drawable.level_1));
+                count += 1;
+                latList.add(new LatLong(coord.latitude,coord.longitude));
+            } else if(count == 2){
+                markerB.setPosition(new LatLng(coord.latitude, coord.longitude));
+                markerB.setMap(naverMap);
+                markerB.setIcon(OverlayImage.fromResource(R.drawable.level_2));
+                count -= 1;
+                latList.add(new LatLong(coord.latitude,coord.longitude));
             }
-            if (Automode_Marker_Count == 2) {
-                LatLong level_1_Marker_Position = new LatLong(Automode_Marker.get(0).getPosition().latitude, Automode_Marker.get(0).getPosition().longitude);
-                LatLong level_2_Marker_Position = new LatLong(Automode_Marker.get(1).getPosition().latitude, Automode_Marker.get(1).getPosition().longitude);
-                double head_Angle = MathUtils.getHeadingFromCoordinates(level_1_Marker_Position, level_2_Marker_Position);
-                /* 앵글값 고려
-                if (90 < head_Angle & head_Angle < 270) {
-                    head_Angle -= 90;
+
+            if(latList.size()>=2) {
+                double distance2D = MathUtils.getDistance2D(latList.get(0), latList.get(1));
+                double angle = MathUtils.getHeadingFromCoordinates(latList.get(0), latList.get(1));
+                if (90 < angle & angle < 270) {
+                    angle -= 90;
                 } else {
-                    head_Angle += 90;
+                    angle += 90;
                 }
-                */
-                LatLong latLong1 = MathUtils.newCoordFromBearingAndDistance(level_1_Marker_Position, head_Angle, Automode_Distance);
-                LatLong latLong2 = MathUtils.newCoordFromBearingAndDistance(level_2_Marker_Position, head_Angle, Automode_Distance);
-                // LatLong 을 latlng로 변환
-                LatLng latLng1 = new LatLng(latLong1.getLatitude(), latLong1.getLongitude());
-                LatLng latLng2 = new LatLng(latLong2.getLatitude(), latLong2.getLongitude());
-
-                interval_LatLng[2] = latLng1;
-                interval_LatLng[3] = latLng2;
-                polygon.setCoords(Arrays.asList(
-                        new LatLng(interval_LatLng[0].latitude, interval_LatLng[0].longitude),
-                        new LatLng(interval_LatLng[1].latitude, interval_LatLng[1].longitude),
-                        new LatLng(interval_LatLng[2].latitude, interval_LatLng[2].longitude),
-                        new LatLng(interval_LatLng[3].latitude, interval_LatLng[3].longitude)
-                ));
-                int colorTransparentCyan = getResources().getColor(R.color.colorTransparentCyan);
-                polygon.setColor(colorTransparentCyan);
-                polygon.setMap(naverMap);
-            }
-/*
-            if (listLat.size() >= 2) {
-                double math = MathUtils.getDistance2D(listLat.get(0), listLat.get(1));
-                double angle = MathUtils.getHeadingFromCoordinates(listLat.get(0), listLat.get(1));
-
-
-//                                LatLong Cpoint = MathUtils.newCoordFromBearingAndDistance(listLat.get(0),angle,dista);
-//                                LatLong Dpoint = MathUtils.newCoordFromBearingAndDistance(listLat.get(1),angle,dista);
-
-                intervalList = new ArrayList<>();
                 int i = 1;
-                while ((interval * i) < Automode_Distance) {
-                    intervalList.add(interval * i);
+                while ((interval_Distance * i) < Automode_Distance) {
+                    intervalList.add(interval_Distance * i);
                     i += 1;
                 }
-                for (int num : intervalList) {
-                    LatLong Cpoint_1 = MathUtils.newCoordFromBearingAndDistance(listLat.get(1), angle, num);
-                    LatLong Dpoint_1 = MathUtils.newCoordFromBearingAndDistance(listLat.get(0), angle, num);
-                    dList.add(Dpoint_1);
-                    if (dList.size() == 2) {
-                        listLat.add(dList.get(0));
-                        listLat.add(dList.get(1));
-                        dList.remove(1);
-                        dList.remove(0);
+
+                // 길 그리기
+               for(int num : intervalList) {
+                    LatLong pointC_1 = MathUtils.newCoordFromBearingAndDistance(latList.get(1), angle, num);
+                    LatLong pointD_1 = MathUtils.newCoordFromBearingAndDistance(latList.get(0), angle, num);
+                    D_List.add(pointD_1);
+                    if(D_List.size()==2){
+                        latList.add(D_List.get(0));
+                        latList.add(D_List.get(1));
+                        D_List.remove(1);
+                        D_List.remove(0);
                     }
-                    listLat.add(Cpoint_1);
+                    latList.add(pointC_1);
+
+                    markerC.setPosition(new LatLng(pointC_1.getLatitude(), pointC_1.getLongitude()));
+                    markerD.setPosition(new LatLng(pointD_1.getLatitude(), pointD_1.getLongitude()));
                 }
-                for (LatLong num : listLat){
-                    lineList.add(new LatLng(num.getLatitude(),num.getLongitude()));
+                for (LatLong num : latList){
+                    pathList.add(new LatLng(num.getLatitude(),num.getLongitude()));
                 }
-                PathOverlay path = new PathOverlay();
                 path.setCoords(
-                        lineList
+                        pathList
                 );
                 path.setMap(naverMap);
-                list.add(Double.toString(math));
-                list.add(Double.toString(angle));
+                polygonOverlay.setCoords(Arrays.asList(
+                        markerA.getPosition(),
+                        markerB.getPosition(),
+                        markerC.getPosition(),
+                        markerD.getPosition()
+                ));
+                polygonOverlay.setColor(Color.argb(80, 0, 216, 255));
+                polygonOverlay.setMap(naverMap);
+                recyclerView("지점간의 거리" +distance2D);
+                recyclerView("각" + angle);
                 adapter.notifyDataSetChanged();
-                recyclerView.scrollToPosition(list.size()-1);
-            }
-            */
 
+            }
             //MakePath();
         });
     }
 
-    private void MakePath() {
-        LatLong level_1_Marker_Position = new LatLong(Automode_Marker.get(0).getPosition().latitude, Automode_Marker.get(0).getPosition().longitude);
-        LatLong level_2_Marker_Position = new LatLong(Automode_Marker.get(1).getPosition().latitude, Automode_Marker.get(1).getPosition().longitude);
-        double head_Angle = MathUtils.getHeadingFromCoordinates(level_1_Marker_Position, level_2_Marker_Position);
+    // 미션 시작
 
-        Automode_Polyline.add(new LatLng(Automode_Marker.get(0).getPosition().latitude, Automode_Marker.get(0).getPosition().longitude));
-        Automode_Polyline.add(new LatLng(Automode_Marker.get(1).getPosition().latitude, Automode_Marker.get(1).getPosition().longitude));
-
-        for(int sum = interval_Distance; sum + interval_Distance <= Automode_Distance + interval_Distance; sum = sum + interval_Distance)
-        {
-            LatLong latLong1 = MathUtils.newCoordFromBearingAndDistance(level_1_Marker_Position, head_Angle, Automode_Distance);
-            LatLong latLong2 = MathUtils.newCoordFromBearingAndDistance(level_2_Marker_Position, head_Angle, Automode_Distance);
-            // LatLong 을 latlng로 변환
-            LatLng latLng1 = new LatLng(latLong2.getLatitude(), latLong1.getLongitude());
-            LatLng latLng2 = new LatLng(latLong1.getLatitude(), latLong2.getLongitude());
-            Automode_Marker.add(new Marker(latLng1));
-            Automode_Marker.add(new Marker(latLng2));
-            Automode_Marker_Count += 2;
-//            Auto_Marker.get(Auto_Marker_Count-2).getPosition();
-            Automode_Polyline.add(new LatLng(Automode_Marker.get(Automode_Marker_Count-2).getPosition().latitude,Automode_Marker.get(Automode_Marker_Count-2).getPosition().longitude));
-            Automode_Polyline.add(new LatLng(Automode_Marker.get(Automode_Marker_Count-1).getPosition().latitude,Automode_Marker.get(Automode_Marker_Count-1).getPosition().longitude));
-        }
-        polylinePath.setColor(Color.WHITE);
-        polylinePath.setCoords(Automode_Polyline);
-        polylinePath.setMap(naverMap);
-    }
-
-    public void guidedMode(LatLng latLng) {
+    private void guidedMode(LatLng latLng) {
         LatLng GuidePointLatLng = new LatLng(latLng.latitude, latLng.longitude);
         LatLong GuidePointLatLong = new LatLong(latLng.latitude, latLng.longitude);
         VehicleApi.getApi(this.drone).setVehicleMode((VehicleMode.COPTER_GUIDED));
@@ -991,7 +934,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         markerB.setMap(null);
         markerC.setMap(null);
         markerD.setMap(null);
-        listLat.clear();
+        latList.clear();
+        path.setMap(null);
+        pathList.clear();
+        intervalList.clear();
+        polygonOverlay.setMap(null);
+        D_List.clear();
         //polygon.setMap(null);
         recyclerView("경로가 지워졌습니다.");
     }
