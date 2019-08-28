@@ -77,12 +77,12 @@
             android:layout_width="50dp"
             android:layout_height="52dp"
             android:layout_gravity="bottom"
-            android:layout_marginLeft="135dp"
             android:layout_marginStart="135dp"
+            android:layout_marginLeft="135dp"
             android:layout_marginBottom="120dp"
+            android:text="임무전송"
             android:textSize="10sp"
-            tools:ignore="SmallSp"
-            android:text="임무시작" />
+            tools:ignore="SmallSp" />
 
         <EditText
             android:id="@+id/distance"

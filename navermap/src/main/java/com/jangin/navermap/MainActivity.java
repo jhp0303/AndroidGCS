@@ -56,6 +56,7 @@ import com.o3dr.services.android.lib.drone.attribute.AttributeEvent;
 import com.o3dr.services.android.lib.drone.attribute.AttributeType;
 import com.o3dr.services.android.lib.drone.connection.ConnectionParameter;
 import com.o3dr.services.android.lib.drone.mission.Mission;
+import com.o3dr.services.android.lib.drone.mission.item.spatial.Waypoint;
 import com.o3dr.services.android.lib.drone.property.Altitude;
 import com.o3dr.services.android.lib.drone.property.Attitude;
 import com.o3dr.services.android.lib.drone.property.Battery;
@@ -80,8 +81,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static com.o3dr.services.android.lib.drone.mission.action.MissionActions.ACTION_GOTO_WAYPOINT;
 import static com.o3dr.services.android.lib.drone.mission.action.MissionActions.ACTION_SET_MISSION;
+import static com.o3dr.services.android.lib.drone.mission.action.MissionActions.ACTION_START_MISSION;
+import static com.o3dr.services.android.lib.drone.mission.action.MissionActions.EXTRA_FORCE_ARM;
+import static com.o3dr.services.android.lib.drone.mission.action.MissionActions.EXTRA_FORCE_MODE_CHANGE;
 import static com.o3dr.services.android.lib.drone.mission.action.MissionActions.EXTRA_MISSION;
+import static com.o3dr.services.android.lib.drone.mission.action.MissionActions.EXTRA_MISSION_ITEM_INDEX;
 import static com.o3dr.services.android.lib.drone.mission.action.MissionActions.EXTRA_PUSH_TO_DRONE;
 import static com.o3dr.services.android.lib.util.MathUtils.getArcInRadians;
 
@@ -269,6 +275,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         final Button btnStartMission = (Button) findViewById(R.id.startMission);
         final UiSettings uiSettings = naverMap.getUiSettings();
         View.OnClickListener listener = new View.OnClickListener() {
+
             @Override
             public void onClick(View v) {
                 switch (v.getId()) {
@@ -435,7 +442,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         break;
 
                     case R.id.startMission:
-
+                        String nowMission = btnStartMission.getText().toString();
+                        if (nowMission.equals("임무시작")) {
+                            changeMode();
+                        }
+                        else {
+                            missionSetting();
+                        }
                         break;
 
                 }
@@ -460,6 +473,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         btnInterval.setOnClickListener(listener);
         btndistance.setOnClickListener(listener);
         btnStartMission.setOnClickListener(listener);
+    }
+
+    public void changeMode() {
+        VehicleApi.getApi(this.drone).setVehicleMode((VehicleMode.COPTER_AUTO));
     }
 
     // 리사이클러 뷰
@@ -586,11 +603,32 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 adapter.notifyDataSetChanged();
 
             }
-            //MakePath();
         });
     }
 
-    // 미션 시작
+    //미션 넣기
+    public void missionSetting() {
+        Waypoint waypoint = new Waypoint();
+        Mission mission = new Mission();
+        int pathSize = 0;
+        while (pathSize < pathList.size()) {
+            LatLongAlt path = new LatLongAlt(pathList.get(pathSize).latitude, pathList.get(pathSize).longitude, takeoffAltitude);
+            //MakePath();
+            waypoint.setDelay(5);
+            waypoint.setCoordinate(path);
+            mission.addMissionItem(waypoint);
+            pathSize++;
+        }
+        setMission(mission, true);
+    }
+
+    // 미션 설정
+    public void setMission(Mission mission, boolean pushToDrone) {
+        Bundle params = new Bundle();
+        params.putParcelable(EXTRA_MISSION, mission);
+        params.putBoolean(EXTRA_PUSH_TO_DRONE, pushToDrone);
+        drone.performAsyncAction(new Action(ACTION_SET_MISSION, params));
+    }
 
     private void guidedMode(LatLng latLng) {
         LatLng GuidePointLatLng = new LatLng(latLng.latitude, latLng.longitude);
@@ -690,6 +728,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 updateVehicleMode();
                 break;
 
+            case AttributeEvent.MISSION_SENT:
+                Button btnStartMission = (Button) findViewById(R.id.startMission);
+                btnStartMission.setOnClickListener(new View.OnClickListener(){
+                    @Override
+                    public void onClick(View v) {
+                        btnStartMission.setText("임무시작");
+                    }
+                });
+
+
+
+                break;
 
             case AttributeEvent.GPS_COUNT:
                 processGpsState();
@@ -701,6 +751,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             case AttributeEvent.ATTITUDE_UPDATED:
                 updateYaw();
                 break;
+
+
 
             default:
                 // Log.i("DRONE_EVENT", event); //Uncomment to see events from the drone
