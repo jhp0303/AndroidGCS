@@ -14,8 +14,6 @@ import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -25,7 +23,6 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.mygcs.R;
@@ -71,25 +68,16 @@ import com.o3dr.services.android.lib.model.SimpleCommandListener;
 import com.o3dr.services.android.lib.model.action.Action;
 import com.o3dr.services.android.lib.util.MathUtils;
 
-import org.w3c.dom.Text;
-
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import static com.o3dr.services.android.lib.drone.mission.action.MissionActions.ACTION_GOTO_WAYPOINT;
 import static com.o3dr.services.android.lib.drone.mission.action.MissionActions.ACTION_SET_MISSION;
-import static com.o3dr.services.android.lib.drone.mission.action.MissionActions.ACTION_START_MISSION;
-import static com.o3dr.services.android.lib.drone.mission.action.MissionActions.EXTRA_FORCE_ARM;
-import static com.o3dr.services.android.lib.drone.mission.action.MissionActions.EXTRA_FORCE_MODE_CHANGE;
 import static com.o3dr.services.android.lib.drone.mission.action.MissionActions.EXTRA_MISSION;
-import static com.o3dr.services.android.lib.drone.mission.action.MissionActions.EXTRA_MISSION_ITEM_INDEX;
 import static com.o3dr.services.android.lib.drone.mission.action.MissionActions.EXTRA_PUSH_TO_DRONE;
-import static com.o3dr.services.android.lib.util.MathUtils.getArcInRadians;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback, DroneListener, TowerListener, LinkListener {
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1000;
@@ -140,10 +128,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         setContentView(R.layout.activity_main);
         this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LOCKED);
 
-
-
-
-        Log.d("myLog", "테스트 결과입니다.");
+        Log.d(TAG, "테스트 결과입니다.");
 
         final Context context = getApplicationContext();
         this.controlTower = new ControlTower(context);
@@ -202,6 +187,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @UiThread
     @Override
     public void onMapReady(@NonNull final NaverMap naverMap) {
+        // 1st : setNaverMap
+        // 2nd : initButtons
+        // 3rd : init
+
         this.naverMap = naverMap;
 
         // 켜지자마자 드론 연결
@@ -227,25 +216,26 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         State vehicleState = this.drone.getAttribute(AttributeType.STATE);
         naverMap.setOnMapLongClickListener((coord, point) -> {
             AlertDialog.Builder ad = new AlertDialog.Builder(this);
-            ad.setTitle("알림");       // 제목 설정
-            ad.setMessage("해당 좌표로 이동합니다.");   // 내용 설정
+            ad.setTitle(R.string.title_alert);       // 제목 설정
+            ad.setMessage(R.string.move_drone);   // 내용 설정
             // 확인 버튼 설정
-            ad.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+            ad.setPositiveButton(R.string.Yes, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     dialog.dismiss();     //닫기
                     // Event
                     guidedMode(point);
-                    recyclerView("드론이 해당 좌표로 이동 중입니다.");
+                    recyclerView(String.valueOf(R.string.move_drone_to_coordinate));
                 }
             });
             // 취소 버튼 설정
-            ad.setNegativeButton("No", new DialogInterface.OnClickListener() {
+            ad.setNegativeButton(R.string.No, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     dialog.dismiss();     //닫기
                     // Event
-                    Toast.makeText(getApplicationContext(), "최소 하셨습니다.", Toast.LENGTH_SHORT).show();
+                    recyclerView(String.valueOf(R.string.cancle));
+                    Toast.makeText(getApplicationContext(), R.string.cancle, Toast.LENGTH_SHORT).show();
                 }
             });
             // 창 띄우기
@@ -296,16 +286,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     case R.id.mapLock:
                         buttonLock.setVisibility(View.GONE);
                         buttonMove.setVisibility(View.GONE);
-                        buttonLockMove.setText("맵 잠금");
-                        recyclerView("맵이 잠겼습니다.");
+                        buttonLockMove.setText(R.string.map_lock);
+                        recyclerView(String.valueOf(R.string.map_lock_message));
                         uiSettings.setScrollGesturesEnabled(false);
                         break;
 
                     case R.id.mapMove:
                         buttonLock.setVisibility(View.GONE);
                         buttonMove.setVisibility(View.GONE);
-                        buttonLockMove.setText("맵 이동");
-                        recyclerView("맵잠금이 풀렸습니다.");
+                        buttonLockMove.setText(R.string.map_move);
+                        recyclerView(String.valueOf(R.string.map_move_message));
                         uiSettings.setScrollGesturesEnabled(true);
                         break;
 
@@ -325,8 +315,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         buttontopo.setVisibility(View.GONE);
                         buttongeneral.setVisibility(View.GONE);
                         buttonsatel.setVisibility(View.GONE);
-                        buttonselectMap.setText("위성지도");
-                        recyclerView("위성지도로 변경 되었습니다.");
+                        buttonselectMap.setText(R.string.satellite_map);
+                        recyclerView(String.valueOf(R.string.satellite_map_message));
                         naverMap.setMapType(NaverMap.MapType.Satellite);
                         break;
 
@@ -334,8 +324,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         buttontopo.setVisibility(View.GONE);
                         buttongeneral.setVisibility(View.GONE);
                         buttonsatel.setVisibility(View.GONE);
-                        buttonselectMap.setText("지형도");
-                        recyclerView("지형도로 변경 되었습니다.");
+                        buttonselectMap.setText(R.string.topographic_map);
+                        recyclerView(String.valueOf(R.string.topographic_map_message));
                         naverMap.setMapType(NaverMap.MapType.Terrain);
                         break;
 
@@ -343,8 +333,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         buttontopo.setVisibility(View.GONE);
                         buttongeneral.setVisibility(View.GONE);
                         buttonsatel.setVisibility(View.GONE);
-                        buttonselectMap.setText("일반지도");
-                        recyclerView("일반지도로 변경 되었습니다.");
+                        buttonselectMap.setText(R.string.general_map);
+                        recyclerView(String.valueOf(R.string.general_map_message));
                         naverMap.setMapType(NaverMap.MapType.Basic);
                         break;
 
@@ -361,16 +351,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     case R.id.mapOff:
                         buttonmapOn.setVisibility(View.GONE);
                         buttonmapOff.setVisibility(View.GONE);
-                        buttonOnOff.setText("지적도OFF");
-                        recyclerView("지적도가 꺼졌습니다.");
+                        buttonOnOff.setText(R.string.cadastral_map_off);
+                        recyclerView(String.valueOf(R.string.cadastral_map_off_message));
                         naverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_CADASTRAL, false);
                         break;
 
                     case R.id.mapOn:
                         buttonmapOn.setVisibility(View.GONE);
                         buttonmapOff.setVisibility(View.GONE);
-                        buttonOnOff.setText("지적도ON");
-                        recyclerView("지적도가 켜졌습니다.");
+                        buttonOnOff.setText(R.string.cadastral_map_on);
+                        recyclerView(String.valueOf(R.string.cadastral_map_on_message));
                         naverMap.setLayerGroupEnabled(NaverMap.LAYER_GROUP_CADASTRAL, true);
                         break;
 
@@ -387,19 +377,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     case R.id.btnAltiUp:
                         if (takeoffAltitude < 15) {
                             takeoffAltitude = takeoffAltitude + 3;
-                            btnAltitude.setText(takeoffAltitude + "m");
-                            recyclerView("이륙고도가" + takeoffAltitude + "M로 변경되었습니다.");
+                            btnAltitude.setText(takeoffAltitude + R.string.take_off_altitude_meter);
+                            recyclerView(String.valueOf(R.string.take_off_altitude_meter_1st_message) + takeoffAltitude + R.string.take_off_altitude_meter_2nd_message);
                         }
                         break;
 
                     case R.id.btnAltiDown:
                         if (takeoffAltitude > 0) {
                             takeoffAltitude = takeoffAltitude - 3;
-                            btnAltitude.setText(takeoffAltitude + "M");
-                            recyclerView("이륙고도가" + takeoffAltitude + "M로 변경되었습니다.");
+                            btnAltitude.setText(takeoffAltitude + R.string.take_off_altitude_meter);
+                            recyclerView(String.valueOf(R.string.take_off_altitude_meter_1st_message) + takeoffAltitude + R.string.take_off_altitude_meter_2nd_message);
                         } else if (takeoffAltitude == 0) {
-                            btnAltitude.setText("이륙고도");
-                            recyclerView("이륙고도를 설정해주세요");
+                            btnAltitude.setText(R.string.take_off_altitude);
+                            recyclerView(String.valueOf(R.string.take_off_altitude_message));
                         }
 
                     case R.id.missionSelect:
@@ -420,7 +410,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         Automode_Distance = Integer.parseInt(distance);
                         String interval = btnInterval.getText().toString();
                         interval_Distance = Integer.parseInt(interval);
-                        DrawRectangle();
+                        drawWaypointOnMap();
                         if (btndistance.getVisibility() == View.VISIBLE) {
                             btndistance.setVisibility(View.GONE);
                             btnInterval.setVisibility(View.GONE);
@@ -428,22 +418,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             btndistance.setVisibility(View.VISIBLE);
                             btnInterval.setVisibility(View.VISIBLE);
                         }
-
-                        break;
-
-                    case R.id.distance:
-                        //String distance = btndistance.getText().toString();
-                        //Automode_Distance = Integer.parseInt(distance);
-                        break;
-
-                    case R.id.interval:
-                        //String interval = btnInterval.getText().toString();
-                        //interval_Distance = Integer.parseInt(interval);
                         break;
 
                     case R.id.startMission:
                         String nowMission = btnStartMission.getText().toString();
-                        if (nowMission.equals("임무시작")) {
+                        if (nowMission.equals(String.valueOf(R.string.mission_start))) {
                             changeMode();
                         }
                         else {
@@ -525,9 +504,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void run() {
                 if (dataList.size() > 0) {
                     dataList.remove(dataList.size() - 1);
-                    Log.d("myLog", "하나 삭제");
+                    Log.d(TAG, "하나 삭제");
                 } else {
-                    Log.d("myLog", "아무것도 없음");
+                    Log.d(TAG, "아무것도 없음");
                 }
                 recyclerView.setAdapter(adapter);
                 adapter.notifyDataSetChanged();
@@ -536,8 +515,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         handler.post(updater);
     }
 
-    public void DrawRectangle() {
-        alertUser("A와 B좌표를 클릭하세요");
+    public void drawWaypointOnMap() {
+        alertUser(String.valueOf(R.string.choose_Apos_Bpos));
         naverMap.setOnMapClickListener((point, coord) -> {
             if (count == 1) {
                 markerA.setPosition(new LatLng(coord.latitude, coord.longitude));
@@ -569,19 +548,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 // 길 그리기
                for(int num : intervalList) {
-                    LatLong pointC_1 = MathUtils.newCoordFromBearingAndDistance(latList.get(1), angle, num);
-                    LatLong pointD_1 = MathUtils.newCoordFromBearingAndDistance(latList.get(0), angle, num);
-                    D_List.add(pointD_1);
+                    LatLong pointC = MathUtils.newCoordFromBearingAndDistance(latList.get(1), angle, num);
+                    LatLong pointD = MathUtils.newCoordFromBearingAndDistance(latList.get(0), angle, num);
+                    D_List.add(pointD);
                     if(D_List.size()==2){
                         latList.add(D_List.get(0));
                         latList.add(D_List.get(1));
                         D_List.remove(1);
                         D_List.remove(0);
                     }
-                    latList.add(pointC_1);
+                    latList.add(pointC);
 
-                    markerC.setPosition(new LatLng(pointC_1.getLatitude(), pointC_1.getLongitude()));
-                    markerD.setPosition(new LatLng(pointD_1.getLatitude(), pointD_1.getLongitude()));
+                    markerC.setPosition(new LatLng(pointC.getLatitude(), pointC.getLongitude()));
+                    markerD.setPosition(new LatLng(pointD.getLatitude(), pointD.getLongitude()));
                 }
                 for (LatLong num : latList){
                     pathList.add(new LatLng(num.getLatitude(),num.getLongitude()));
@@ -598,8 +577,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 ));
                 polygonOverlay.setColor(Color.argb(80, 0, 216, 255));
                 polygonOverlay.setMap(naverMap);
-                recyclerView("지점간의 거리" +distance2D);
-                recyclerView("각" + angle);
+                //recyclerView("지점간의 거리" +distance2D);
+                //recyclerView("각" + angle);
                 adapter.notifyDataSetChanged();
 
             }
@@ -617,6 +596,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             waypoint.setDelay(5);
             waypoint.setCoordinate(path);
             mission.addMissionItem(waypoint);
+            mission.removeMissionItem(waypoint);
             pathSize++;
         }
         setMission(mission, true);
@@ -641,20 +621,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         ControlApi.getApi(this.drone).goTo(GuidePointLatLong, true, new AbstractCommandListener() {
             @Override
             public void onSuccess() {
-                alertUser("해당 좌표로 이동합니다.");
-                recyclerView("가이드 모드 : 해당 좌표로 이동");
+                alertUser(String.valueOf(R.string.move_drone_to_coordinate));
+                recyclerView(String.valueOf(R.string.guide_mode + R.string.move_drone));
             }
 
             @Override
             public void onError(int executionError) {
-                alertUser("실패");
-                recyclerView("가이드 모드 : 실패");
+                alertUser(String.valueOf(R.string.failed));
+                recyclerView(String.valueOf(R.string.guide_mode + R.string.failed));
             }
 
             @Override
             public void onTimeout() {
-                alertUser("타임아웃");
-                recyclerView("가이드 모드 : 타임아웃");
+                alertUser(String.valueOf(R.string.time_out));
+                recyclerView(String.valueOf(R.string.guide_mode + R.string.time_out));
             }
         });
     }
@@ -683,15 +663,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onDroneEvent(String event, Bundle extras) {
         switch (event) {
             case AttributeEvent.STATE_CONNECTED:
-                alertUser("Drone Connected");
-                recyclerView("드론이 연결 되었습니다.");
+                alertUser(String.valueOf(R.string.drone_connected));
+                recyclerView(String.valueOf(R.string.drone_connected));
                 updateConnectedButton(this.drone.isConnected());
                 updateArmButton();
                 break;
 
             case AttributeEvent.STATE_DISCONNECTED:
-                alertUser("Drone Disconnected");
-                recyclerView("드론 연결이 해제되었습니다.");
+                alertUser(String.valueOf(R.string.drone_disconnected));
+                recyclerView(String.valueOf(R.string.drone_disconnected));
                 updateConnectedButton(this.drone.isConnected());
                 updateArmButton();
                 break;
@@ -733,12 +713,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 btnStartMission.setOnClickListener(new View.OnClickListener(){
                     @Override
                     public void onClick(View v) {
-                        btnStartMission.setText("임무시작");
+                        btnStartMission.setText(R.string.mission_start);
                     }
                 });
-
-
-
                 break;
 
             case AttributeEvent.GPS_COUNT:
@@ -751,8 +728,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             case AttributeEvent.ATTITUDE_UPDATED:
                 updateYaw();
                 break;
-
-
 
             default:
                 // Log.i("DRONE_EVENT", event); //Uncomment to see events from the drone
@@ -992,6 +967,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         intervalList.clear();
         polygonOverlay.setMap(null);
         D_List.clear();
+        Button btnStartMission = (Button) findViewById(R.id.startMission);
+        btnStartMission.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                btnStartMission.setText("임무전송");
+            }
+        });
+
         //polygon.setMap(null);
         recyclerView("경로가 지워졌습니다.");
     }
@@ -1013,9 +996,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void updateConnectedButton(Boolean isConnected) {
         Button connectButton = (Button) findViewById(R.id.btnConnect);
         if (isConnected) {
-            connectButton.setText(getText(R.string.button_disconnect));
+            connectButton.setText(getText(R.string.init_disconnect));
         } else {
-            connectButton.setText(getText(R.string.button_connect));
+            connectButton.setText(getText(R.string.init_connect));
         }
     }
 

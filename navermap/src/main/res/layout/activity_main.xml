@@ -45,7 +45,7 @@
             android:layout_marginBottom="120dp"
             android:textSize="10sp"
             tools:ignore="SmallSp"
-            android:text="모드선택" />
+            android:text="@string/select_mode" />
 
         <Button
             android:id="@+id/basicMission"
@@ -56,7 +56,7 @@
             android:layout_marginBottom="120dp"
             android:textSize="10sp"
             tools:ignore="SmallSp"
-            android:text="일반모드"
+            android:text="@string/basic_mode"
             android:layout_marginStart="45dp" />
 
         <Button
@@ -69,7 +69,7 @@
             android:layout_marginBottom="120dp"
             android:textSize="10sp"
             tools:ignore="SmallSp"
-            android:text="간격감시"
+            android:text="@string/interval_mission"
              />
 
         <Button
@@ -80,7 +80,7 @@
             android:layout_marginStart="135dp"
             android:layout_marginLeft="135dp"
             android:layout_marginBottom="120dp"
-            android:text="임무전송"
+            android:text="@string/send_mission"
             android:textSize="10sp"
             tools:ignore="SmallSp" />
 
@@ -92,11 +92,12 @@
             android:layout_marginLeft="94dp"
             android:layout_marginBottom="170dp"
             android:textSize="10sp"
-            android:hint="거리설정"
+            android:hint="@string/set_distance"
             android:gravity="center"
             tools:ignore="SmallSp"
             android:inputType="number"
-            android:background="#D5D5D5"/>
+            android:background="#D5D5D5"
+            android:layout_marginStart="94dp" />
 
         <EditText
             android:id="@+id/interval"
@@ -106,10 +107,12 @@
             android:layout_marginLeft="140dp"
             android:layout_marginBottom="170dp"
             android:textSize="10sp"
-            android:hint="간격설정"
+            android:hint="@string/set_interval"
             android:gravity="center"
             android:inputType="number"
-            android:background="#D5D5D5"/>
+            android:background="#D5D5D5"
+            tools:ignore="SmallSp"
+            android:layout_marginStart="140dp" />
 
         <Button
             android:id="@+id/btnAlti"
@@ -117,7 +120,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="bottom"
             android:layout_marginBottom="80dp"
-            android:text="@string/button_alt"/>
+            android:text="@string/init_alt"/>
 
         <Button
             android:id="@+id/btnConnect"
@@ -126,7 +129,7 @@
             android:layout_marginBottom="40dp"
             android:layout_gravity="bottom"
             android:onClick="onBtnConnectTap"
-            android:text="@string/button_connect" />
+            android:text="@string/init_connect" />
 
         <Button
             android:id="@+id/btnAltiUp"
@@ -158,7 +161,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="bottom"
             android:onClick="onArmButtonTap"
-            android:text="@string/button_arm"
+            android:text="@string/init_arm"
             app:layout_constraintRight_toRightOf="parent"
             android:gravity="center_vertical"/>
 
@@ -178,7 +181,7 @@
             android:id="@+id/voltage"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/button_voltage"
+            android:text="@string/init_voltage"
             android:layout_weight="1"
             android:background="#00000000"
             android:textColor="@android:color/white"/>
@@ -189,7 +192,7 @@
             android:layout_width="75dp"
             android:layout_height="31dp"
             android:spinnerMode="dropdown"
-            android:text="@string/button_flightMode"
+            android:text="@string/init_flightMode"
             android:layout_weight="1"
             android:background="#4DFFFFFF" />
 
@@ -198,7 +201,7 @@
             android:id="@+id/altitude"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/button_altitude"
+            android:text="@string/init_altitude"
             android:layout_weight="1"
             android:background="#00000000"
             android:textColor="@android:color/white"/>
@@ -207,7 +210,7 @@
             android:id="@+id/speed"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/button_speed"
+            android:text="@string/init_speed"
             android:layout_weight="1"
             android:background="#00000000"
             android:textColor="@android:color/white"/>
@@ -216,7 +219,7 @@
             android:id="@+id/yaw"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/button_yaw"
+            android:text="@string/init_yaw"
             android:layout_weight="1"
             android:background="#00000000"
             android:textColor="@android:color/white"/>
@@ -225,7 +228,7 @@
             android:id="@+id/Satellite"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/button_satellite"
+            android:text="@string/init_satellite"
             android:layout_weight="1"
             android:background="#00000000"
             android:textColor="@android:color/white"/>
@@ -237,27 +240,29 @@
         android:orientation="vertical"
         android:gravity="bottom"
         android:layout_marginLeft="360dp"
-        android:layout_marginRight="280dp">
+        android:layout_marginRight="280dp"
+        android:layout_marginEnd="280dp"
+        android:layout_marginStart="360dp">
 
         <Button
             android:id="@+id/mapMove"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="맵 이동"
+            android:text="@string/map_move"
             android:visibility="visible"/>
 
         <Button
             android:id="@+id/mapLock"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="맵 잠금"
+            android:text="@string/map_lock"
             android:visibility="visible"/>
 
         <Button
             android:id="@+id/mapLockMove"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="맵 선택"
+            android:text="@string/map_move_select"
             android:visibility="visible"/>
 
     </LinearLayout>
@@ -268,31 +273,33 @@
         android:orientation="vertical"
         android:gravity="bottom"
         android:layout_marginLeft="447dp"
-        android:layout_marginRight="193dp">
+        android:layout_marginRight="193dp"
+        android:layout_marginEnd="193dp"
+        android:layout_marginStart="447dp">
 
         <Button
             android:id="@+id/satelliteMap"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="위성지도"/>
+            android:text="@string/satellite_map"/>
 
         <Button
             android:id="@+id/topographicMap"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="지형도"/>
+            android:text="@string/topographic_map"/>
 
         <Button
             android:id="@+id/generalMap"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="일반지도"/>
+            android:text="@string/general_map"/>
 
         <Button
             android:id="@+id/selectMap"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="지도선택"
+            android:text="@string/map_select"
             android:visibility="visible"/>
 
     </LinearLayout>
@@ -303,25 +310,27 @@
         android:orientation="vertical"
         android:gravity="bottom"
         android:layout_marginLeft="537dp"
-        android:layout_marginRight="103dp">
+        android:layout_marginRight="103dp"
+        android:layout_marginStart="537dp"
+        android:layout_marginEnd="103dp">
 
         <Button
             android:id="@+id/mapOff"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="지적도OFF"/>
+            android:text="@string/cadastral_map_off"/>
 
         <Button
             android:id="@+id/mapOn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="지적도ON"/>
+            android:text="@string/cadastral_map_on"/>
 
         <Button
             android:id="@+id/mapOnOff"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="지적도선택"
+            android:text="@string/cadastral_map_select"
             android:visibility="visible"/>
 
     </LinearLayout>
@@ -331,13 +340,14 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:gravity="bottom"
-        android:layout_marginLeft="627dp" >
+        android:layout_marginLeft="627dp"
+        android:layout_marginStart="627dp">
 
         <Button
             android:id="@+id/CLEAR"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="CLEAR"
+            android:text="@string/init_clear"
             android:onClick="clearButton"/>
     </LinearLayout>
 
