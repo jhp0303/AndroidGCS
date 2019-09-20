@@ -1,4 +1,4 @@
-<resources>
+<resources>x
     <string name="app_name">NaverMap</string>
     <string name="init_connect">Connect</string>
     <string name="init_disconnect">Disconnect</string>
@@ -12,6 +12,7 @@
     <string name="init_satellite">위성</string>
     <string name="init_alt">이륙고도</string>
     <string name="init_clear">CLEAR</string>
+    <string name="init_takeoff">TAKE-OFF</string>
     <string name="select_mode">모드선택</string>
     <string name="basic_mode">일반모드</string>
     <string name="interval_mission">간격감시</string>

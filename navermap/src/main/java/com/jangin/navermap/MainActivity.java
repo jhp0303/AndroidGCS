@@ -187,9 +187,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @UiThread
     @Override
     public void onMapReady(@NonNull final NaverMap naverMap) {
-        // 1st : setNaverMap
+        // 1st : initNaverMap
         // 2nd : initButtons
-        // 3rd : init
+        // 3rd : initGuideMode
 
         this.naverMap = naverMap;
 
@@ -210,7 +210,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         naverMap.moveCamera(cameraUpdate);
 
         // 버튼 목록
-        GuiButton();
+        initializeButton();
 
         // 가이드 모드
         State vehicleState = this.drone.getAttribute(AttributeType.STATE);
@@ -243,7 +243,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
     }
 
-    private void GuiButton() {
+    private void initializeButton() {
         final Button buttonLockMove = (Button) findViewById(R.id.mapLockMove);
         final Button buttonLock = (Button) findViewById(R.id.mapLock);
         final Button buttonMove = (Button) findViewById(R.id.mapMove);
@@ -270,7 +270,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onClick(View v) {
                 switch (v.getId()) {
                     case R.id.CLEAR:
-
                         break;
 
                     case R.id.mapLockMove:
@@ -391,6 +390,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                             btnAltitude.setText(R.string.take_off_altitude);
                             recyclerView(String.valueOf(R.string.take_off_altitude_message));
                         }
+                        break;
 
                     case R.id.missionSelect:
                         if (btnBasicMission.getVisibility() == View.VISIBLE) {
@@ -747,7 +747,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void updateVoltage() {
         Battery vehicleBattery = this.drone.getAttribute(AttributeType.BATTERY);
-        vehicleBattery.getBatteryVoltage();
         Button voltageButton = (Button) findViewById(R.id.voltage);
         voltageButton.setText(String.format("전압 " + "%3.1f", vehicleBattery.getBatteryVoltage()) + "V");
     }
@@ -755,9 +754,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void processGpsState() {
 
         Gps vehicleGps = this.drone.getAttribute(AttributeType.GPS);
-        vehicleGps.getSatellitesCount();
         Button satelliteButton = (Button) findViewById(R.id.Satellite);
-        satelliteButton.setText(String.format("위성 " + vehicleGps.getSatellitesCount()));
+        satelliteButton.setText("위성 " + vehicleGps.getSatellitesCount());
     }
 
     protected void updateSpeed() {
@@ -816,13 +814,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         if (vehicleState.isFlying()) {
             // Land
-            armButton.setText("LAND");
+            armButton.setText(R.string.init_land);
         } else if (vehicleState.isArmed()) {
             // Take off
-            armButton.setText("TAKE-OFF");
+            armButton.setText(R.string.init_takeoff);
         } else if (vehicleState.isConnected()) {
             // Connected but not Armed
-            armButton.setText("ARM");
+            armButton.setText(R.string.init_arm);
         }
     }
 
